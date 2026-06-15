@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*'
+
+jobs:
+  release:
+    name: Build & Publish
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build release binary
+        run: swift build -c release
+
+      - name: Package app bundle
+        run: |
+          mkdir -p ContainerUI.app/Contents/MacOS ContainerUI.app/Contents/Resources
+          cp .build/release/ContainerUI ContainerUI.app/Contents/MacOS/
+          cp Info.plist ContainerUI.app/Contents/
+          cp Resources/AppIcon.icns ContainerUI.app/Contents/Resources/
+          codesign --force --deep --sign - ContainerUI.app
+
+      - name: Zip app bundle
+        run: ditto -c -k --sequesterRsrc --keepParent ContainerUI.app ContainerUI-${{ github.ref_name }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ContainerUI ${{ github.ref_name }}
+          files: ContainerUI-${{ github.ref_name }}.zip
+          generate_release_notes: true
