@@ -22,7 +22,7 @@ extension ContainerService {
         await fetchImages()
     }
 
-    static func parseImageList(_ output: String) -> [ImageInfo] {
+    nonisolated static func parseImageList(_ output: String) -> [ImageInfo] {
         let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard lines.count > 1 else { return [] }
 

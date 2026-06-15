@@ -251,12 +251,12 @@ final class ContainerService: ObservableObject {
 
     // MARK: – Shared parse helpers (used by extensions)
 
-    static func columnOffset(_ name: String, in header: String) -> Int? {
+    nonisolated static func columnOffset(_ name: String, in header: String) -> Int? {
         guard let range = header.range(of: name) else { return nil }
         return header.distance(from: header.startIndex, to: range.lowerBound)
     }
 
-    static func field(_ chars: [Character], from: Int, to: Int?) -> String {
+    nonisolated static func field(_ chars: [Character], from: Int, to: Int?) -> String {
         let start = min(from, chars.count)
         let end   = to.map { min($0, chars.count) } ?? chars.count
         guard start < end else { return "" }
@@ -265,7 +265,7 @@ final class ContainerService: ObservableObject {
 
     // MARK: – Container parsing
 
-    static func parseContainerList(_ output: String) -> [ContainerInfo] {
+    nonisolated static func parseContainerList(_ output: String) -> [ContainerInfo] {
         let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard lines.count > 1 else { return [] }
 

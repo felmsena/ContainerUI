@@ -8,6 +8,11 @@ let package = Package(
         .executableTarget(
             name: "ContainerUI",
             path: "Sources/ContainerUI"
+        ),
+        .testTarget(
+            name: "ContainerUITests",
+            dependencies: ["ContainerUI"],
+            path: "Tests/ContainerUITests"
         )
     ]
 )

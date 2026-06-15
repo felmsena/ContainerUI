@@ -2,6 +2,7 @@
 
 A native macOS app for managing [Apple Container](https://github.com/apple/container) — run, inspect, and monitor lightweight macOS VMs from a clean SwiftUI interface.
 
+[![CI](https://github.com/felmsena/ContainerUI/actions/workflows/ci.yml/badge.svg)](https://github.com/felmsena/ContainerUI/actions/workflows/ci.yml)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)

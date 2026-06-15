@@ -29,7 +29,7 @@ extension ContainerService {
         await fetchContainers()
     }
 
-    static func parseSystemStatus(_ output: String) -> SystemStatusInfo? {
+    nonisolated static func parseSystemStatus(_ output: String) -> SystemStatusInfo? {
         var values: [String: String] = [:]
         for line in output.components(separatedBy: "\n").dropFirst() where !line.isEmpty {
             let parts = line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
@@ -45,7 +45,7 @@ extension ContainerService {
         )
     }
 
-    static func parseSystemDf(_ output: String) -> [SystemDfRow] {
+    nonisolated static func parseSystemDf(_ output: String) -> [SystemDfRow] {
         let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard lines.count > 1 else { return [] }
 
@@ -72,7 +72,7 @@ extension ContainerService {
         }
     }
 
-    static func parseVersionRows(_ output: String) -> [VersionRow] {
+    nonisolated static func parseVersionRows(_ output: String) -> [VersionRow] {
         let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard lines.count > 1 else { return [] }
 

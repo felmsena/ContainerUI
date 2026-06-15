@@ -22,7 +22,7 @@ extension ContainerService {
         await fetchVolumes()
     }
 
-    static func parseVolumeList(_ output: String) -> [VolumeInfo] {
+    nonisolated static func parseVolumeList(_ output: String) -> [VolumeInfo] {
         let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard lines.count > 1 else { return [] }
 
