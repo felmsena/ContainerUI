@@ -1,0 +1,12 @@
+# Build artifacts
+.build/
+ContainerUI.app/
+
+# Xcode / SwiftPM user data
+*.xcuserstate
+.swiftpm/
+xcuserdata/
+
+# macOS
+.DS_Store
+**/.DS_Store

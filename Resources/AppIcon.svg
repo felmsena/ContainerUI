@@ -1,0 +1,70 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#0D1520"/>
+    <stop offset="100%" stop-color="#0A1229"/>
+  </linearGradient>
+  <linearGradient id="fTop" x1="284" y1="264" x2="740" y2="496" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#A7F3D0"/>
+    <stop offset="55%" stop-color="#6EE7B7"/>
+    <stop offset="100%" stop-color="#34D399"/>
+  </linearGradient>
+  <linearGradient id="fLeft" x1="284" y1="496" x2="512" y2="758" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#10B981"/>
+    <stop offset="100%" stop-color="#047857"/>
+  </linearGradient>
+  <linearGradient id="fRight" x1="512" y1="496" x2="740" y2="758" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#065F46"/>
+    <stop offset="100%" stop-color="#052E1C"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="512" cy="780" r="300" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#10B981" stop-opacity="0.38"/>
+    <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="topShine" cx="460" cy="355" r="200" gradientUnits="userSpaceOnUse">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.20"/>
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </radialGradient>
+  <pattern id="dots" x="0" y="0" width="42" height="42" patternUnits="userSpaceOnUse">
+    <circle cx="1" cy="1" r="1.5" fill="#1e3a5a" opacity="0.35"/>
+  </pattern>
+</defs>
+
+<!-- Background -->
+<rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+<rect width="1024" height="1024" rx="230" fill="url(#dots)"/>
+
+<!-- Glow beneath cube -->
+<ellipse cx="512" cy="786" rx="330" ry="72" fill="url(#glow)"/>
+
+<!-- Shadow (offset polygon beneath cube) -->
+<polygon points="284,496 740,496 740,760 512,892 284,760" fill="#000" opacity="0.30" transform="translate(18,26)"/>
+
+<!-- Right face (darkest) -->
+<polygon points="512,496 740,364 740,628 512,760" fill="url(#fRight)"/>
+
+<!-- Left face (medium) -->
+<polygon points="284,364 512,496 512,760 284,628" fill="url(#fLeft)"/>
+
+<!-- Top face (brightest) -->
+<polygon points="284,364 512,232 740,364 512,496" fill="url(#fTop)"/>
+
+<!-- Top face shine -->
+<polygon points="284,364 512,232 740,364 512,496" fill="url(#topShine)"/>
+
+<!-- Edge highlights — top two edges -->
+<polyline points="284,364 512,232 740,364" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-opacity="0.55" stroke-linejoin="round" stroke-linecap="round"/>
+
+<!-- Vertical center edge -->
+<line x1="512" y1="496" x2="512" y2="760" stroke="#000" stroke-width="2" stroke-opacity="0.22"/>
+
+<!-- Left outer vertical edge highlight -->
+<line x1="284" y1="364" x2="284" y2="628" stroke="#10B981" stroke-width="1.5" stroke-opacity="0.32"/>
+
+<!-- Right outer vertical edge -->
+<line x1="740" y1="364" x2="740" y2="628" stroke="#000" stroke-width="1.5" stroke-opacity="0.38"/>
+
+<!-- Subtle "C" on right face for branding -->
+<text x="648" y="620" font-family="-apple-system, SF Pro Display, Helvetica Neue, sans-serif" font-size="78" font-weight="700" fill="#0A3D26" opacity="0.42" text-anchor="middle">C</text>
+
+</svg>
