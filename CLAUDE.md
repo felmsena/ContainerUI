@@ -40,4 +40,4 @@ CI (`ci.yml`) runs build + tests on every push/PR to `main`. App is ad-hoc signe
 
 ## Roadmap
 
-`ROADMAP.md` is the prioritized work plan (phases, per-item file pointers, acceptance criteria, suggested session breakdown). When asked to "continue development", read it, implement the next unchecked item, mark it `[x]`, commit, push.
+`ROADMAP.md` (kept local, not committed — see `.gitignore`) is the prioritized work plan. When asked to "continue development", read it, implement the next unchecked item, mark it `[x]`, commit, push.

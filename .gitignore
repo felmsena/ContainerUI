@@ -10,3 +10,6 @@ xcuserdata/
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Local-only planning docs
+ROADMAP.md
