@@ -110,9 +110,11 @@ struct ContainerListView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     OnboardingStep(number: 1, title: "Install Homebrew (if needed)",
                                   code: "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
-                    OnboardingStep(number: 2, title: "Install Apple Container",
-                                  code: "brew install apple/apple/container")
-                    OnboardingStep(number: 3, title: "Start the service",
+                    OnboardingStep(number: 2, title: "Add the Apple Container tap",
+                                  code: "brew tap apple/apple")
+                    OnboardingStep(number: 3, title: "Install Apple Container",
+                                  code: "brew install container")
+                    OnboardingStep(number: 4, title: "Start the service",
                                   code: "container system start")
                 }
                 .frame(maxWidth: 420)

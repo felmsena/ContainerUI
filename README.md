@@ -39,7 +39,8 @@ Apple Container is a command-line tool that lets you run lightweight Linux conta
 ### Install Apple Container
 
 ```bash
-brew install apple/apple/container
+brew tap apple/apple
+brew install container
 container system start
 ```
 
