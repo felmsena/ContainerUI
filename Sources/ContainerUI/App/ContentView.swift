@@ -87,6 +87,17 @@ struct ContentView: View {
         .onChange(of: sidebarItem) { _, _ in
             selectedRegistryEntry = nil
         }
+        .overlay {
+            if service.showCommandPalette {
+                CommandPaletteView(
+                    isPresented: $service.showCommandPalette,
+                    sidebarItem: $sidebarItem,
+                    selectedContainer: $selectedContainer,
+                    selectedImage: $selectedImage,
+                    selectedVolume: $selectedVolume
+                )
+            }
+        }
     }
 
     @ViewBuilder

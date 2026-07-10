@@ -17,6 +17,11 @@ struct ContainerUIApp: App {
                     Task { await service.fetchContainers() }
                 }
                 .keyboardShortcut("r", modifiers: .command)
+
+                Button("Search…") {
+                    service.showCommandPalette.toggle()
+                }
+                .keyboardShortcut("k", modifiers: .command)
             }
         }
 

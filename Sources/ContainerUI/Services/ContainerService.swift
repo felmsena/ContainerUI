@@ -19,6 +19,7 @@ final class ContainerService: ObservableObject {
     @Published var isLoading = false
     @Published var serviceError: String?
     @Published var daemonState: DaemonState = .unknown
+    @Published var showCommandPalette = false
 
     // Images
     @Published var images: [ImageInfo] = []
