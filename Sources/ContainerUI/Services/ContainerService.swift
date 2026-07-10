@@ -284,6 +284,50 @@ final class ContainerService: ObservableObject {
         }
     }
 
+    /// Like `shell(_:)`, but writes `stdin` to the process's standard input
+    /// (then closes it) instead of leaving it unconnected — for
+    /// `--password-stdin`-style flags, so a secret never appears as a
+    /// process argument (visible in `ps`) or gets logged anywhere.
+    @discardableResult
+    func shellWithStdin(_ args: [String], stdin: String) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let outPipe = Pipe()
+                let errPipe = Pipe()
+                let inPipe = Pipe()
+
+                process.executableURL = URL(fileURLWithPath: args[0])
+                process.arguments = Array(args.dropFirst())
+                process.standardOutput = outPipe
+                process.standardError = errPipe
+                process.standardInput = inPipe
+
+                do {
+                    try process.run()
+                } catch {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                if let data = stdin.data(using: .utf8) {
+                    inPipe.fileHandleForWriting.write(data)
+                }
+                try? inPipe.fileHandleForWriting.close()
+
+                process.waitUntilExit()
+                let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+                if process.terminationStatus != 0 {
+                    let errMsg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "Unknown error"
+                    continuation.resume(throwing: ContainerError.failed(errMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
+                } else {
+                    continuation.resume(returning: out)
+                }
+            }
+        }
+    }
+
     enum ContainerError: LocalizedError {
         case failed(String)
         var errorDescription: String? {

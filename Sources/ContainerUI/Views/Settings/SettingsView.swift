@@ -5,6 +5,11 @@ struct SettingsView: View {
     @AppStorage("defaultBrowserPort") private var defaultPort = "9000"
     @EnvironmentObject var service: ContainerService
 
+    @State private var registryLogins: [RegistryLogin] = []
+    @State private var showAddRegistrySheet = false
+    @State private var registryError: String?
+    @State private var loggingOutHostname: String?
+
     private let intervals = [3, 5, 10, 30, 60]
 
     var body: some View {
@@ -90,6 +95,56 @@ struct SettingsView: View {
                     }
                 }
 
+                SectionCard(title: "Registries") {
+                    if registryLogins.isEmpty {
+                        Text("No registry logins")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(Array(registryLogins.enumerated()), id: \.element.id) { index, login in
+                            if index > 0 { Divider() }
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(login.hostname)
+                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    Text(login.username)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    Task { await logout(login.hostname) }
+                                } label: {
+                                    if loggingOutHostname == login.hostname {
+                                        ProgressView().scaleEffect(0.6)
+                                    } else {
+                                        Text("Log Out")
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .disabled(loggingOutHostname != nil)
+                            }
+                        }
+                    }
+
+                    if let registryError {
+                        Text(registryError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    Divider()
+
+                    Button {
+                        showAddRegistrySheet = true
+                    } label: {
+                        Label("Add registry login…", systemImage: "plus.circle")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.borderless)
+                }
+
                 SectionCard(title: "About") {
                     KeyValueRow(key: "App",     value: "ContainerUI")
                     KeyValueRow(key: "Backend", value: "Apple Container \(service.versionRows.first?.version ?? "")")
@@ -103,6 +158,29 @@ struct SettingsView: View {
             if service.versionRows.isEmpty {
                 await service.fetchSystemInfo()
             }
+            await loadRegistryLogins()
         }
+        .sheet(isPresented: $showAddRegistrySheet) {
+            RegistryLoginSheet {
+                Task { await loadRegistryLogins() }
+            }
+            .environmentObject(service)
+        }
+    }
+
+    private func loadRegistryLogins() async {
+        registryLogins = await service.fetchRegistryLogins()
+    }
+
+    private func logout(_ hostname: String) async {
+        loggingOutHostname = hostname
+        registryError = nil
+        do {
+            try await service.registryLogout(server: hostname)
+            await loadRegistryLogins()
+        } catch {
+            registryError = error.localizedDescription
+        }
+        loggingOutHostname = nil
     }
 }

@@ -512,4 +512,36 @@ final class ParsingTests: XCTestCase {
         let pct = ContainerService.cpuPercent(currentUsec: 1_000_000, previousUsec: 0, currentTime: t0, previousTime: t0)
         XCTAssertEqual(pct, 0)
     }
+
+    // MARK: – parseRegistryList
+    //
+    // Header from the real `container registry list` (verified by character
+    // count): HOSTNAME=0  USERNAME=10  MODIFIED=20  CREATED=30
+
+    private let registryHeader = "HOSTNAME  USERNAME  MODIFIED  CREATED"
+    private let registryRow    = "ghcr.io   alice     -         2026-01-01T00:00:00Z"
+
+    func testParseRegistryList_empty() {
+        XCTAssertTrue(ContainerService.parseRegistryList("").isEmpty)
+        XCTAssertTrue(ContainerService.parseRegistryList(registryHeader).isEmpty)
+    }
+
+    func testParseRegistryList_single() {
+        let output = registryHeader + "\n" + registryRow
+        let result = ContainerService.parseRegistryList(output)
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result[0].hostname, "ghcr.io")
+        XCTAssertEqual(result[0].username, "alice")
+    }
+
+    func testParseRegistryList_multiple() {
+        let row2 = "docker.io bob       -         2026-02-01T00:00:00Z"
+        let output = registryHeader + "\n" + registryRow + "\n" + row2
+        let result = ContainerService.parseRegistryList(output)
+
+        XCTAssertEqual(result.count, 2)
+        XCTAssertEqual(result[1].hostname, "docker.io")
+        XCTAssertEqual(result[1].username, "bob")
+    }
 }
