@@ -167,14 +167,36 @@ final class ContainerService: ObservableObject {
         (try? await shell([bin, "logs", "--tail", "\(lines)", id])) ?? ""
     }
 
-    func openShell(for id: String) {
-        let cmd = "\(bin) exec --tty --interactive \(id) sh"
-        let script = """
+    /// Single-quotes `s` for safe use as one shell argument, escaping any
+    /// embedded single quotes (`'` → `'\''`).
+    nonisolated static func shellQuote(_ s: String) -> String {
+        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Escapes backslashes and double quotes so `s` can be safely interpolated
+    /// inside an AppleScript double-quoted string literal.
+    nonisolated static func appleScriptEscape(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\", with: "\\\\")
+         .replacingOccurrences(of: "\"", with: "\\\"")
+    }
+
+    /// Builds the `tell application "Terminal"` source for `openShell(for:)`.
+    /// `id` is shell-quoted (so it can't break out into a second shell
+    /// command) and the resulting command is AppleScript-escaped (so it
+    /// can't break out of the `do script` string literal) before either is
+    /// interpolated — a container `--name` can contain arbitrary characters.
+    nonisolated static func openShellScript(bin: String, id: String) -> String {
+        let cmd = "\(bin) exec --tty --interactive \(shellQuote(id)) sh"
+        return """
         tell application "Terminal"
             activate
-            do script "\(cmd)"
+            do script "\(appleScriptEscape(cmd))"
         end tell
         """
+    }
+
+    func openShell(for id: String) {
+        let script = Self.openShellScript(bin: bin, id: id)
         var err: NSDictionary?
         NSAppleScript(source: script)?.executeAndReturnError(&err)
     }
