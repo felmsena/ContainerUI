@@ -182,6 +182,7 @@ struct MenuBarContainerRow: View {
         .background(isHovering ? Color(nsColor: .controlBackgroundColor) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .padding(.horizontal, 4)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
         .onHover { isHovering = $0 }
     }
 }
@@ -191,6 +192,7 @@ struct MenuBarAction: View {
     let label: String
     var role: ButtonRole? = nil
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(role: role, action: action) {
@@ -206,7 +208,11 @@ struct MenuBarAction: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity)
+            .background(isHovering ? Color(nsColor: .controlBackgroundColor) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .onHover { isHovering = $0 }
     }
 }
