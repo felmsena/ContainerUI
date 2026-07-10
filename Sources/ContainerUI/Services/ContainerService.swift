@@ -20,6 +20,8 @@ final class ContainerService: ObservableObject {
     @Published var serviceError: String?
     @Published var daemonState: DaemonState = .unknown
     @Published var showCommandPalette = false
+    @Published var showRunSheet = false
+    @Published var sidebarItem: SidebarItem = .containers
 
     // Images
     @Published var images: [ImageInfo] = []
@@ -144,6 +146,17 @@ final class ContainerService: ObservableObject {
     func stop(_ id: String) async {
         _ = try? await shell([bin, "stop", id])
         await fetchContainers()
+    }
+
+    /// Refreshes whichever sidebar section is currently on screen (⌘R).
+    func refreshCurrentSection() async {
+        switch sidebarItem {
+        case .containers: await fetchContainers()
+        case .images:     await fetchImages()
+        case .volumes:    await fetchVolumes()
+        case .stats, .logs: await fetchSystemInfo()
+        case .registry, .build, .settings: break
+        }
     }
 
     func restart(_ id: String) async {

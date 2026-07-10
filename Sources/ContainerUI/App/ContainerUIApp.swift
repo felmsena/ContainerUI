@@ -13,8 +13,8 @@ struct ContainerUIApp: App {
         .defaultSize(width: 1100, height: 680)
         .commands {
             CommandGroup(after: .appInfo) {
-                Button("Refresh containers") {
-                    Task { await service.fetchContainers() }
+                Button("Refresh") {
+                    Task { await service.refreshCurrentSection() }
                 }
                 .keyboardShortcut("r", modifiers: .command)
 
@@ -22,6 +22,24 @@ struct ContainerUIApp: App {
                     service.showCommandPalette.toggle()
                 }
                 .keyboardShortcut("k", modifiers: .command)
+            }
+
+            CommandGroup(replacing: .newItem) {
+                Button("Run Container…") {
+                    service.showRunSheet = true
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+
+            CommandGroup(after: .toolbar) {
+                ForEach(Array(SidebarItem.allCases.enumerated()), id: \.element) { index, item in
+                    if item != .settings {
+                        Button(item.rawValue) {
+                            service.sidebarItem = item
+                        }
+                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                    }
+                }
             }
         }
 

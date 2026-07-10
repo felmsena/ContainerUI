@@ -4,8 +4,8 @@ struct ContainerListView: View {
     @EnvironmentObject var service: ContainerService
     @Binding var selected: ContainerInfo?
     @State private var searchText = ""
-    @State private var showRunSheet = false
     @State private var showPruneAlert = false
+    @FocusState private var isListFocused: Bool
 
     private var filtered: [ContainerInfo] {
         guard !searchText.isEmpty else { return service.containers }
@@ -55,10 +55,26 @@ struct ContainerListView: View {
                                 isSelected: selected?.id == container.id
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture { selected = container }
+                            .onTapGesture {
+                                selected = container
+                                isListFocused = true
+                            }
                         }
                     }
                     .padding(12)
+                }
+                .focusable()
+                .focused($isListFocused)
+                .onKeyPress(.space) {
+                    guard let selected else { return .ignored }
+                    Task {
+                        if selected.state.isRunning {
+                            await service.stop(selected.id)
+                        } else {
+                            await service.start(selected.id)
+                        }
+                    }
+                    return .handled
                 }
             }
         }
@@ -85,7 +101,7 @@ struct ContainerListView: View {
                 .foregroundStyle(stoppedCount > 0 ? .orange : .secondary)
                 .disabled(stoppedCount == 0)
 
-                Button { showRunSheet = true } label: {
+                Button { service.showRunSheet = true } label: {
                     Image(systemName: "plus")
                 }
                 .help("Run new container")
@@ -99,10 +115,6 @@ struct ContainerListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This action cannot be undone.")
-        }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
         }
     }
 
@@ -198,7 +210,7 @@ struct ContainerListView: View {
                 subtitle: "Run your first container to get started.",
                 detail: nil
             ) {
-                Button { showRunSheet = true } label: {
+                Button { service.showRunSheet = true } label: {
                     Label("Run Container", systemImage: "play.fill")
                         .frame(minWidth: 130)
                 }

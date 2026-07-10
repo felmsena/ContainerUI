@@ -26,7 +26,6 @@ enum SidebarItem: String, CaseIterable, Hashable {
 
 struct ContentView: View {
     @EnvironmentObject var service: ContainerService
-    @State private var sidebarItem: SidebarItem = .containers
     @State private var selectedContainer: ContainerInfo?
     @State private var selectedImage: ImageInfo?
     @State private var selectedRegistryEntry: RegistryEntry?
@@ -34,20 +33,20 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selected: $sidebarItem)
+            SidebarView(selected: $service.sidebarItem)
         } content: {
-            switch sidebarItem {
+            switch service.sidebarItem {
             case .containers: ContainerListView(selected: $selectedContainer)
             case .images:     ImagesView(selected: $selectedImage)
             case .volumes:    VolumesView(selected: $selectedVolume)
             case .registry:   RegistryView(selectedEntry: $selectedRegistryEntry)
-            case .build:      BuildView(sidebarItem: $sidebarItem, selectedImage: $selectedImage)
+            case .build:      BuildView(sidebarItem: $service.sidebarItem, selectedImage: $selectedImage)
             case .stats:      SystemStatsView()
             case .logs:       SystemLogsView()
             case .settings:   SettingsView()
             }
         } detail: {
-            switch sidebarItem {
+            switch service.sidebarItem {
             case .containers:
                 if let container = selectedContainer {
                     DetailView(container: container).id(container.id)
@@ -75,7 +74,7 @@ struct ContentView: View {
                     emptyDetail(icon: "externaldrive", text: "Select a volume")
                 }
             default:
-                emptyDetail(icon: sidebarItem.icon, text: sidebarItem.rawValue)
+                emptyDetail(icon: service.sidebarItem.icon, text: service.sidebarItem.rawValue)
             }
         }
         .onChange(of: service.containers) { _, _ in
@@ -84,19 +83,23 @@ struct ContentView: View {
                 selectedContainer = updated
             }
         }
-        .onChange(of: sidebarItem) { _, _ in
+        .onChange(of: service.sidebarItem) { _, _ in
             selectedRegistryEntry = nil
         }
         .overlay {
             if service.showCommandPalette {
                 CommandPaletteView(
                     isPresented: $service.showCommandPalette,
-                    sidebarItem: $sidebarItem,
+                    sidebarItem: $service.sidebarItem,
                     selectedContainer: $selectedContainer,
                     selectedImage: $selectedImage,
                     selectedVolume: $selectedVolume
                 )
             }
+        }
+        .sheet(isPresented: $service.showRunSheet) {
+            RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
+                .environmentObject(service)
         }
     }
 
