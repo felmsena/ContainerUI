@@ -4,6 +4,7 @@ enum DetailTab: String, CaseIterable {
     case info  = "Info"
     case logs  = "Logs"
     case stats = "Stats"
+    case shell = "Shell"
 }
 
 struct DetailView: View {
@@ -15,6 +16,7 @@ struct DetailView: View {
             Picker("", selection: $tab) {
                 ForEach(DetailTab.allCases, id: \.self) { t in
                     Text(t.rawValue).tag(t)
+                        .disabled(t == .shell && !container.state.isRunning)
                 }
             }
             .pickerStyle(.segmented)
@@ -27,8 +29,12 @@ struct DetailView: View {
             case .info:  InfoTabView(container: container)
             case .logs:  LogsTabView(containerId: container.id)
             case .stats: StatsTabView(container: container)
+            case .shell: ExecTabView(container: container)
             }
         }
         .navigationTitle(container.id)
+        .onChange(of: container.state.isRunning) { _, isRunning in
+            if tab == .shell && !isRunning { tab = .info }
+        }
     }
 }

@@ -86,4 +86,31 @@ final class UtilityTests: XCTestCase {
         let image = ImageInfo(name: "ghcr.io/apple/containerization/vminit", tag: "0.33.3", digest: "")
         XCTAssertTrue(imageMatches(containerImage: "ghcr.io/apple/containerization/vminit:0.33.3", image: image))
     }
+
+    // MARK: – ContainerService.tokenizeCommand
+
+    func testTokenizeCommand_simple() {
+        XCTAssertEqual(ContainerService.tokenizeCommand("ls -la /"), ["ls", "-la", "/"])
+    }
+
+    func testTokenizeCommand_collapsesExtraWhitespace() {
+        XCTAssertEqual(ContainerService.tokenizeCommand("  ls    -la   /tmp  "), ["ls", "-la", "/tmp"])
+    }
+
+    func testTokenizeCommand_doubleQuotedArgumentKeepsSpaces() {
+        XCTAssertEqual(ContainerService.tokenizeCommand(#"sh -c "echo hello world""#), ["sh", "-c", "echo hello world"])
+    }
+
+    func testTokenizeCommand_singleQuotedArgumentKeepsSpaces() {
+        XCTAssertEqual(ContainerService.tokenizeCommand("sh -c 'echo hi there'"), ["sh", "-c", "echo hi there"])
+    }
+
+    func testTokenizeCommand_empty_returnsEmptyArray() {
+        XCTAssertEqual(ContainerService.tokenizeCommand(""), [])
+        XCTAssertEqual(ContainerService.tokenizeCommand("   "), [])
+    }
+
+    func testTokenizeCommand_unmatchedQuote_doesNotCrash() {
+        XCTAssertEqual(ContainerService.tokenizeCommand(#"echo "unterminated"#), ["echo", "unterminated"])
+    }
 }
