@@ -5,6 +5,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
     case images     = "Images"
     case volumes    = "Volumes"
     case registry   = "Registry"
+    case build      = "Build"
     case stats      = "Stats"
     case logs       = "Logs"
     case settings   = "Settings"
@@ -15,6 +16,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .images:     return "shippingbox"
         case .volumes:    return "externaldrive"
         case .registry:   return "storefront"
+        case .build:      return "hammer"
         case .stats:      return "chart.bar"
         case .logs:       return "terminal"
         case .settings:   return "gearshape"
@@ -39,6 +41,7 @@ struct ContentView: View {
             case .images:     ImagesView(selected: $selectedImage)
             case .volumes:    VolumesView(selected: $selectedVolume)
             case .registry:   RegistryView(selectedEntry: $selectedRegistryEntry)
+            case .build:      BuildView(sidebarItem: $sidebarItem, selectedImage: $selectedImage)
             case .stats:      SystemStatsView()
             case .logs:       SystemLogsView()
             case .settings:   SettingsView()

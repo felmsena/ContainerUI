@@ -113,4 +113,33 @@ final class UtilityTests: XCTestCase {
     func testTokenizeCommand_unmatchedQuote_doesNotCrash() {
         XCTAssertEqual(ContainerService.tokenizeCommand(#"echo "unterminated"#), ["echo", "unterminated"])
     }
+
+    // MARK: – ContainerService.detectBuildFile
+
+    private func makeTempDir() -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    func testDetectBuildFile_prefersDockerfile() {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try! "FROM alpine".write(to: dir.appendingPathComponent("Dockerfile"), atomically: true, encoding: .utf8)
+        try! "FROM alpine".write(to: dir.appendingPathComponent("Containerfile"), atomically: true, encoding: .utf8)
+        XCTAssertEqual(ContainerService.detectBuildFile(in: dir), "Dockerfile")
+    }
+
+    func testDetectBuildFile_fallsBackToContainerfile() {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try! "FROM alpine".write(to: dir.appendingPathComponent("Containerfile"), atomically: true, encoding: .utf8)
+        XCTAssertEqual(ContainerService.detectBuildFile(in: dir), "Containerfile")
+    }
+
+    func testDetectBuildFile_neitherPresent_returnsNil() {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertNil(ContainerService.detectBuildFile(in: dir))
+    }
 }
