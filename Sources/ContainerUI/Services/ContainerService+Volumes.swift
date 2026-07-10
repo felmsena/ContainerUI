@@ -3,8 +3,11 @@ import Foundation
 extension ContainerService {
 
     func fetchVolumes() async {
-        let output = (try? await shell("\(bin) volume ls")) ?? ""
-        volumes = Self.parseVolumeList(output)
+        volumes = (try? await fetchJSONOrText(
+            command: "\(bin) volume ls",
+            jsonParse: Self.parseVolumeListJSON,
+            textParse: Self.parseVolumeList
+        )) ?? []
     }
 
     func createVolume(_ name: String) async throws {
@@ -43,6 +46,29 @@ extension ContainerService {
             let options = field(chars, from: optionsOff, to: nil)
             guard !name.isEmpty else { return nil }
             return VolumeInfo(name: name, type: type, driver: driver, options: options)
+        }
+    }
+
+    // MARK: – JSON parsing
+
+    private struct VolumeListEntryJSON: Decodable {
+        struct Configuration: Decodable {
+            let name: String
+            let driver: String
+            let options: [String: String]?
+        }
+        let configuration: Configuration
+    }
+
+    nonisolated static func parseVolumeListJSON(_ data: Data) -> [VolumeInfo]? {
+        guard let entries = try? JSONDecoder().decode([VolumeListEntryJSON].self, from: data) else { return nil }
+        return entries.map { entry in
+            let options = (entry.configuration.options ?? [:])
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key)=\($0.value)" }
+                .joined(separator: ",")
+            return VolumeInfo(name: entry.configuration.name, type: "named",
+                               driver: entry.configuration.driver, options: options)
         }
     }
 }

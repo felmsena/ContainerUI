@@ -3,8 +3,11 @@ import Foundation
 extension ContainerService {
 
     func fetchImages() async {
-        let output = (try? await shell("\(bin) image ls")) ?? ""
-        images = Self.parseImageList(output)
+        images = (try? await fetchJSONOrText(
+            command: "\(bin) image ls",
+            jsonParse: Self.parseImageListJSON,
+            textParse: Self.parseImageList
+        )) ?? []
     }
 
     func pullImage(_ ref: String) async throws {
@@ -41,6 +44,22 @@ extension ContainerService {
             let digest = field(chars, from: digestOff, to: nil)
             guard !name.isEmpty else { return nil }
             return ImageInfo(name: name, tag: tag, digest: digest)
+        }
+    }
+
+    // MARK: – JSON parsing
+
+    private struct ImageListEntryJSON: Decodable {
+        struct Configuration: Decodable { let name: String }
+        let id: String
+        let configuration: Configuration
+    }
+
+    nonisolated static func parseImageListJSON(_ data: Data) -> [ImageInfo]? {
+        guard let entries = try? JSONDecoder().decode([ImageListEntryJSON].self, from: data) else { return nil }
+        return entries.map { entry in
+            let (name, tag) = ImageReference.split(entry.configuration.name)
+            return ImageInfo(name: name, tag: tag, digest: entry.id)
         }
     }
 }

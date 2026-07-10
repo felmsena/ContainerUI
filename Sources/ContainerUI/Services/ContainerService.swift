@@ -66,8 +66,11 @@ final class ContainerService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let output = try await shell("\(bin) list --all")
-            let newContainers = Self.parseContainerList(output)
+            let newContainers = try await fetchJSONOrText(
+                command: "\(bin) list --all",
+                jsonParse: Self.parseContainerListJSON,
+                textParse: Self.parseContainerList
+            )
 
             if hasInitialFetch {
                 let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
@@ -249,6 +252,23 @@ final class ContainerService: ObservableObject {
         }
     }
 
+    /// Runs `command --format json` and decodes it; falls back to the plain
+    /// text form (and its fixed-width parser) if the JSON attempt fails to
+    /// run or to decode — e.g. an older `container` CLI without `--format`.
+    func fetchJSONOrText<T>(
+        command: String,
+        jsonParse: (Data) -> [T]?,
+        textParse: (String) -> [T]
+    ) async throws -> [T] {
+        if let jsonOutput = try? await shell("\(command) --format json"),
+           let data = jsonOutput.data(using: .utf8),
+           let parsed = jsonParse(data) {
+            return parsed
+        }
+        let output = try await shell(command)
+        return textParse(output)
+    }
+
     // MARK: – Shared parse helpers (used by extensions)
 
     nonisolated static func columnOffset(_ name: String, in header: String) -> Int? {
@@ -299,6 +319,45 @@ final class ContainerService: ObservableObject {
                 id: id, image: image, os: os, arch: arch,
                 state: ContainerState(raw: state),
                 ip: ip, cpus: Int(cpus) ?? 0, memory: memory, started: started
+            )
+        }
+    }
+
+    // MARK: – Container parsing (JSON)
+
+    private struct ContainerListEntryJSON: Decodable {
+        struct Configuration: Decodable {
+            struct ImageRef: Decodable { let reference: String }
+            struct Platform: Decodable { let os: String; let architecture: String }
+            struct Resources: Decodable { let cpus: Int; let memoryInBytes: Int }
+            let image: ImageRef
+            let platform: Platform
+            let resources: Resources
+        }
+        struct Status: Decodable {
+            struct NetworkStatus: Decodable { let ipv4Address: String? }
+            let networks: [NetworkStatus]
+            let state: String
+            let startedDate: String?
+        }
+        let id: String
+        let configuration: Configuration
+        let status: Status
+    }
+
+    nonisolated static func parseContainerListJSON(_ data: Data) -> [ContainerInfo]? {
+        guard let entries = try? JSONDecoder().decode([ContainerListEntryJSON].self, from: data) else { return nil }
+        return entries.map { entry in
+            ContainerInfo(
+                id: entry.id,
+                image: entry.configuration.image.reference,
+                os: entry.configuration.platform.os,
+                arch: entry.configuration.platform.architecture,
+                state: ContainerState(raw: entry.status.state),
+                ip: entry.status.networks.first?.ipv4Address ?? "",
+                cpus: entry.configuration.resources.cpus,
+                memory: formatBytes(entry.configuration.resources.memoryInBytes),
+                started: entry.status.startedDate ?? ""
             )
         }
     }

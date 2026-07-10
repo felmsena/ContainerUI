@@ -223,4 +223,183 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(result[1].version,   "2.1.0")
         XCTAssertEqual(result[1].build,     "def456")
     }
+
+    // MARK: – parseContainerListJSON
+    //
+    // Fixtures trimmed from real `container list --all --format json` output.
+
+    private let containerRunningJSON = """
+    [{"configuration":{"image":{"reference":"docker.io/library/alpine:latest"},
+    "platform":{"architecture":"arm64","os":"linux"},
+    "resources":{"cpus":4,"memoryInBytes":1073741824}},
+    "id":"testalpine",
+    "status":{"networks":[{"ipv4Address":"192.168.64.2/24"}],
+    "startedDate":"2026-07-10T00:07:10Z","state":"running"}}]
+    """
+
+    private let containerStoppedJSON = """
+    [{"configuration":{"image":{"reference":"docker.io/library/sonarqube:community"},
+    "platform":{"architecture":"arm64","os":"linux"},
+    "resources":{"cpus":4,"memoryInBytes":4294967296}},
+    "id":"sonarqube",
+    "status":{"networks":[],"state":"stopped"}}]
+    """
+
+    func testParseContainerListJSON_running() {
+        let result = ContainerService.parseContainerListJSON(Data(containerRunningJSON.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.count, 1)
+        let c = result![0]
+        XCTAssertEqual(c.id,      "testalpine")
+        XCTAssertEqual(c.image,   "docker.io/library/alpine:latest")
+        XCTAssertEqual(c.os,      "linux")
+        XCTAssertEqual(c.arch,    "arm64")
+        XCTAssertEqual(c.state,   .running)
+        XCTAssertEqual(c.ip,      "192.168.64.2/24")
+        XCTAssertEqual(c.cpus,    4)
+        XCTAssertEqual(c.started, "2026-07-10T00:07:10Z")
+    }
+
+    func testParseContainerListJSON_stopped_hasNoIpOrStartedDate() {
+        let result = ContainerService.parseContainerListJSON(Data(containerStoppedJSON.utf8))
+        XCTAssertNotNil(result)
+        let c = result![0]
+        XCTAssertEqual(c.state,   .stopped)
+        XCTAssertEqual(c.ip,      "")
+        XCTAssertEqual(c.started, "")
+    }
+
+    func testParseContainerListJSON_empty() {
+        let result = ContainerService.parseContainerListJSON(Data("[]".utf8))
+        XCTAssertEqual(result, [])
+    }
+
+    func testParseContainerListJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseContainerListJSON(Data("not json".utf8)))
+        XCTAssertNil(ContainerService.parseContainerListJSON(Data("{\"foo\":1}".utf8)))
+    }
+
+    // MARK: – parseImageListJSON
+
+    private let imageListJSON = """
+    [{"configuration":{"name":"docker.io/library/sonarqube:community"},"id":"deadbeef1111"},
+     {"configuration":{"name":"docker.io/sonarsource/sonar-scanner-cli:latest"},"id":"deadbeef2222"},
+     {"configuration":{"name":"ghcr.io/apple/containerization/vminit:0.33.3"},"id":"deadbeef3333"}]
+    """
+
+    func testParseImageListJSON_stripsDockerIoAndLibraryPrefix() {
+        let result = ContainerService.parseImageListJSON(Data(imageListJSON.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.count, 3)
+        XCTAssertEqual(result?[0].name, "sonarqube")
+        XCTAssertEqual(result?[0].tag,  "community")
+        XCTAssertEqual(result?[0].digest, "deadbeef1111")
+        XCTAssertEqual(result?[1].name, "sonarsource/sonar-scanner-cli")
+        XCTAssertEqual(result?[1].tag,  "latest")
+        XCTAssertEqual(result?[2].name, "ghcr.io/apple/containerization/vminit")
+        XCTAssertEqual(result?[2].tag,  "0.33.3")
+    }
+
+    func testParseImageListJSON_empty() {
+        XCTAssertEqual(ContainerService.parseImageListJSON(Data("[]".utf8)), [])
+    }
+
+    func testParseImageListJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseImageListJSON(Data("not json".utf8)))
+    }
+
+    // MARK: – parseVolumeListJSON
+
+    func testParseVolumeListJSON_basic() {
+        let json = """
+        [{"configuration":{"name":"asd","driver":"local","options":{}}}]
+        """
+        let result = ContainerService.parseVolumeListJSON(Data(json.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?[0].name,    "asd")
+        XCTAssertEqual(result?[0].type,    "named")
+        XCTAssertEqual(result?[0].driver,  "local")
+        XCTAssertEqual(result?[0].options, "")
+    }
+
+    func testParseVolumeListJSON_withOptions() {
+        let json = """
+        [{"configuration":{"name":"asd","driver":"local","options":{"size":"1GB"}}}]
+        """
+        let result = ContainerService.parseVolumeListJSON(Data(json.utf8))
+        XCTAssertEqual(result?[0].options, "size=1GB")
+    }
+
+    func testParseVolumeListJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseVolumeListJSON(Data("not json".utf8)))
+    }
+
+    // MARK: – parseSystemDfJSON
+
+    private let systemDfJSON = """
+    {"containers":{"active":1,"reclaimable":4368900096,"sizeInBytes":4637188096,"total":3},
+     "images":{"active":2,"reclaimable":2273460224,"sizeInBytes":5000687616,"total":5},
+     "volumes":{"active":0,"reclaimable":69390336,"sizeInBytes":69390336,"total":1}}
+    """
+
+    func testParseSystemDfJSON_mapsAllCategories() {
+        let result = ContainerService.parseSystemDfJSON(Data(systemDfJSON.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.count, 3)
+        XCTAssertEqual(result?[0].type, "Images")
+        XCTAssertEqual(result?[0].total, "5")
+        XCTAssertEqual(result?[0].active, "2")
+        XCTAssertEqual(result?[1].type, "Containers")
+        XCTAssertEqual(result?[1].total, "3")
+        XCTAssertEqual(result?[2].type, "Local Volumes")
+        XCTAssertEqual(result?[2].total, "1")
+        // volumes: reclaimable == sizeInBytes -> 100% reclaimable. Byte-count text
+        // itself is locale-formatted, so only assert the computed percentage suffix.
+        XCTAssertTrue(result?[2].reclaimable.hasSuffix("(100%)") == true)
+    }
+
+    func testParseSystemDfJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseSystemDfJSON(Data("not json".utf8)))
+    }
+
+    // MARK: – parseVersionRowsJSON
+
+    func testParseVersionRowsJSON_basic() {
+        let json = """
+        [{"appName":"container","buildType":"release","commit":"unspecified","version":"1.1.0"},
+         {"appName":"container-apiserver","buildType":"release","commit":"unspecified","version":"1.1.0 (build)"}]
+        """
+        let result = ContainerService.parseVersionRowsJSON(Data(json.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.count, 2)
+        XCTAssertEqual(result?[0].component, "container")
+        XCTAssertEqual(result?[0].version,   "1.1.0")
+        XCTAssertEqual(result?[0].build,     "release")
+        XCTAssertEqual(result?[1].component, "container-apiserver")
+    }
+
+    func testParseVersionRowsJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseVersionRowsJSON(Data("not json".utf8)))
+    }
+
+    // MARK: – parseSystemStatusJSON
+
+    func testParseSystemStatusJSON_running() {
+        let json = """
+        {"apiServerAppName":"container-apiserver","apiServerBuild":"release",
+         "apiServerCommit":"unspecified","apiServerVersion":"1.1.0","appRoot":"/root",
+         "installRoot":"/install","status":"running"}
+        """
+        let result = ContainerService.parseSystemStatusJSON(Data(json.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.status, "running")
+        XCTAssertEqual(result?.appRoot, "/root")
+        XCTAssertEqual(result?.installRoot, "/install")
+        XCTAssertEqual(result?.apiserverVersion, "1.1.0")
+        XCTAssertTrue(result?.isRunning == true)
+    }
+
+    func testParseSystemStatusJSON_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseSystemStatusJSON(Data("not json".utf8)))
+    }
 }

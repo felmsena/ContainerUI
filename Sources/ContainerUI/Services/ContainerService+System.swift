@@ -3,14 +3,28 @@ import Foundation
 extension ContainerService {
 
     func fetchSystemInfo() async {
-        async let statusOut  = try? shell("\(bin) system status")
-        async let dfOut      = try? shell("\(bin) system df")
-        async let versionOut = try? shell("\(bin) system version")
+        async let statusJSONOut = try? shell("\(bin) system status --format json")
+        async let dfRows        = try? fetchJSONOrText(
+            command: "\(bin) system df",
+            jsonParse: Self.parseSystemDfJSON,
+            textParse: Self.parseSystemDf
+        )
+        async let versionRowsOut = try? fetchJSONOrText(
+            command: "\(bin) system version",
+            jsonParse: Self.parseVersionRowsJSON,
+            textParse: Self.parseVersionRows
+        )
 
-        let (s, d, v) = await (statusOut, dfOut, versionOut)
-        systemStatus = Self.parseSystemStatus(s ?? "")
-        systemDf     = Self.parseSystemDf(d ?? "")
-        versionRows  = Self.parseVersionRows(v ?? "")
+        let (s, d, v) = await (statusJSONOut, dfRows, versionRowsOut)
+
+        if let s, let data = s.data(using: .utf8), let parsed = Self.parseSystemStatusJSON(data) {
+            systemStatus = parsed
+        } else {
+            let textOut = (try? await shell("\(bin) system status")) ?? ""
+            systemStatus = Self.parseSystemStatus(textOut)
+        }
+        systemDf    = d ?? []
+        versionRows = v ?? []
     }
 
     func fetchSystemLogs() async -> String {
@@ -92,5 +106,62 @@ extension ContainerService {
             guard !comp.isEmpty else { return nil }
             return VersionRow(component: comp, version: ver, build: build)
         }
+    }
+
+    // MARK: – JSON parsing
+
+    private struct SystemStatusJSON: Decodable {
+        let status: String
+        let appRoot: String
+        let installRoot: String
+        let apiServerVersion: String
+    }
+
+    nonisolated static func parseSystemStatusJSON(_ data: Data) -> SystemStatusInfo? {
+        guard let s = try? JSONDecoder().decode(SystemStatusJSON.self, from: data) else { return nil }
+        return SystemStatusInfo(status: s.status, appRoot: s.appRoot,
+                                 installRoot: s.installRoot, apiserverVersion: s.apiServerVersion)
+    }
+
+    private struct SystemDfJSON: Decodable {
+        struct Category: Decodable { let total: Int; let active: Int; let sizeInBytes: Int; let reclaimable: Int }
+        let images: Category
+        let containers: Category
+        let volumes: Category
+    }
+
+    nonisolated private static func reclaimableDisplay(_ reclaimable: Int, of total: Int) -> String {
+        guard total > 0 else { return formatBytes(reclaimable) }
+        let pct = Int((Double(reclaimable) / Double(total) * 100).rounded())
+        return "\(formatBytes(reclaimable)) (\(pct)%)"
+    }
+
+    nonisolated static func parseSystemDfJSON(_ data: Data) -> [SystemDfRow]? {
+        guard let df = try? JSONDecoder().decode(SystemDfJSON.self, from: data) else { return nil }
+        func row(_ type: String, _ c: SystemDfJSON.Category) -> SystemDfRow {
+            SystemDfRow(
+                type: type,
+                total: "\(c.total)",
+                active: "\(c.active)",
+                size: formatBytes(c.sizeInBytes),
+                reclaimable: reclaimableDisplay(c.reclaimable, of: c.sizeInBytes)
+            )
+        }
+        return [
+            row("Images", df.images),
+            row("Containers", df.containers),
+            row("Local Volumes", df.volumes)
+        ]
+    }
+
+    private struct VersionRowJSON: Decodable {
+        let appName: String
+        let version: String
+        let buildType: String
+    }
+
+    nonisolated static func parseVersionRowsJSON(_ data: Data) -> [VersionRow]? {
+        guard let entries = try? JSONDecoder().decode([VersionRowJSON].self, from: data) else { return nil }
+        return entries.map { VersionRow(component: $0.appName, version: $0.version, build: $0.buildType) }
     }
 }

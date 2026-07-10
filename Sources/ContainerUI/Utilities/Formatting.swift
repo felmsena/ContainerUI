@@ -6,3 +6,10 @@ func formatCount(_ n: Int) -> String {
     if n >= 1_000         { return "\(n / 1_000)K" }
     return "\(n)"
 }
+
+func formatBytes(_ bytes: Int) -> String {
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .memory
+    formatter.allowedUnits = [.useKB, .useMB, .useGB, .useTB]
+    return formatter.string(fromByteCount: Int64(bytes))
+}
