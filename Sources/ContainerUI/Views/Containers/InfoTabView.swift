@@ -5,6 +5,7 @@ struct InfoTabView: View {
     @EnvironmentObject var service: ContainerService
     @State private var customPort = ""
     @State private var copiedKey: String?
+    @State private var detail: ContainerDetail?
 
     private var rows: [(String, String)] {
         [
@@ -81,6 +82,49 @@ struct InfoTabView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
                     Divider().padding(.leading, 12)
+                }
+
+                // Inspect detail (mounts / env / ports / resources)
+                if let detail {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !detail.mounts.isEmpty {
+                            SectionCard(title: "Mounts") {
+                                ForEach(Array(detail.mounts.enumerated()), id: \.element.id) { index, mount in
+                                    if index > 0 { Divider() }
+                                    KeyValueRow(key: mount.destination, value: mount.source)
+                                }
+                            }
+                        }
+
+                        if !detail.environment.isEmpty {
+                            SectionCard(title: "Environment") {
+                                ForEach(Array(detail.environment.enumerated()), id: \.offset) { index, entry in
+                                    if index > 0 { Divider() }
+                                    let parts = entry.split(separator: "=", maxSplits: 1)
+                                    KeyValueRow(key: String(parts.first ?? ""),
+                                                value: parts.count > 1 ? String(parts[1]) : "")
+                                }
+                            }
+                        }
+
+                        if !detail.ports.isEmpty {
+                            SectionCard(title: "Ports") {
+                                ForEach(Array(detail.ports.enumerated()), id: \.element.id) { index, port in
+                                    if index > 0 { Divider() }
+                                    KeyValueRow(key: "\(port.containerPort)/\(port.proto)",
+                                                value: "\(port.hostAddress):\(port.hostPort)")
+                                }
+                            }
+                        }
+
+                        SectionCard(title: "Resources") {
+                            KeyValueRow(key: "CPUs", value: "\(detail.cpus)")
+                            Divider()
+                            KeyValueRow(key: "Memory", value: formatBytes(detail.memoryInBytes))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
                 }
 
                 // Quick actions
@@ -177,6 +221,7 @@ struct InfoTabView: View {
                 .padding(12)
             }
         }
+        .task { detail = await service.inspectContainer(container.id) }
     }
 
     private func openCustomPort() {

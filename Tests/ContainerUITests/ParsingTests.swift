@@ -402,4 +402,54 @@ final class ParsingTests: XCTestCase {
     func testParseSystemStatusJSON_malformed_returnsNil() {
         XCTAssertNil(ContainerService.parseSystemStatusJSON(Data("not json".utf8)))
     }
+
+    // MARK: – parseContainerDetail
+    //
+    // Fixture trimmed from real `container inspect <id>` output.
+
+    private let inspectJSON = """
+    [{"configuration":{"initProcess":{"environment":["PATH=/usr/local/bin","FOO=bar","BAZ=qux"]},
+    "mounts":[{"destination":"/data","source":"/Users/felipe/.../volumes/asd/volume.img"}],
+    "publishedPorts":[{"containerPort":80,"count":1,"hostAddress":"0.0.0.0","hostPort":18080,"proto":"tcp"}],
+    "resources":{"cpuOverhead":1,"cpus":4,"memoryInBytes":1073741824}},
+    "id":"inspecttest"}]
+    """
+
+    func testParseContainerDetail_mapsAllSections() {
+        let result = ContainerService.parseContainerDetail(Data(inspectJSON.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.environment, ["PATH=/usr/local/bin", "FOO=bar", "BAZ=qux"])
+        XCTAssertEqual(result?.mounts.count, 1)
+        XCTAssertEqual(result?.mounts[0].destination, "/data")
+        XCTAssertEqual(result?.mounts[0].source, "/Users/felipe/.../volumes/asd/volume.img")
+        XCTAssertEqual(result?.ports.count, 1)
+        XCTAssertEqual(result?.ports[0].containerPort, 80)
+        XCTAssertEqual(result?.ports[0].hostPort, 18080)
+        XCTAssertEqual(result?.ports[0].hostAddress, "0.0.0.0")
+        XCTAssertEqual(result?.ports[0].proto, "tcp")
+        XCTAssertEqual(result?.cpus, 4)
+        XCTAssertEqual(result?.memoryInBytes, 1073741824)
+    }
+
+    func testParseContainerDetail_emptyMountsAndPorts() {
+        let json = """
+        [{"configuration":{"initProcess":{"environment":[]},
+        "mounts":[],"publishedPorts":[],
+        "resources":{"cpuOverhead":1,"cpus":1,"memoryInBytes":536870912}},
+        "id":"x"}]
+        """
+        let result = ContainerService.parseContainerDetail(Data(json.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.environment, [])
+        XCTAssertEqual(result?.mounts.isEmpty, true)
+        XCTAssertEqual(result?.ports.isEmpty, true)
+    }
+
+    func testParseContainerDetail_emptyArray_returnsNil() {
+        XCTAssertNil(ContainerService.parseContainerDetail(Data("[]".utf8)))
+    }
+
+    func testParseContainerDetail_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseContainerDetail(Data("not json".utf8)))
+    }
 }
