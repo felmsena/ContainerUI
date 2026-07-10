@@ -61,5 +61,12 @@ enum ContainerState: String, Hashable {
         }
     }
 
-    var label: String { rawValue.capitalized }
+    var label: String {
+        switch self {
+        case .running: return String(localized: "Running")
+        case .stopped: return String(localized: "Stopped")
+        case .paused:  return String(localized: "Paused")
+        case .unknown: return String(localized: "Unknown")
+        }
+    }
 }

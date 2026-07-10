@@ -34,7 +34,7 @@ struct ContainerUIApp: App {
             CommandGroup(after: .toolbar) {
                 ForEach(Array(SidebarItem.allCases.enumerated()), id: \.element) { index, item in
                     if item != .settings {
-                        Button(item.rawValue) {
+                        Button(LocalizedStringKey(item.rawValue)) {
                             service.sidebarItem = item
                         }
                         .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)

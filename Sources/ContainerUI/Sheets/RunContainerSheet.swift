@@ -273,7 +273,7 @@ struct RunContainerSheet: View {
     }
 
     @ViewBuilder
-    private func formSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 12, weight: .medium))

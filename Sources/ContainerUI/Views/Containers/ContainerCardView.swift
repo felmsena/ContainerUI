@@ -132,7 +132,7 @@ struct ContainerCardView: View {
 
 struct CardButton: View {
     let icon: String
-    let tooltip: String
+    let tooltip: LocalizedStringKey
     var destructive = false
     let action: () -> Void
 
@@ -158,7 +158,7 @@ struct CardButton: View {
 }
 
 struct MetaItem: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     var highlight = false
 

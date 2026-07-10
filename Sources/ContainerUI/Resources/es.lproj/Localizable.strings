@@ -1,0 +1,320 @@
+/* Sidebar sections (SidebarItem.rawValue) */
+"Containers" = "Contenedores";
+"Images" = "Imágenes";
+"Volumes" = "Volúmenes";
+"Registry" = "Registro";
+"Build" = "Compilar";
+"Stats" = "Estadísticas";
+"Logs" = "Registros";
+"Settings" = "Ajustes";
+
+/* Container detail tabs (DetailTab.rawValue) */
+"Info" = "Info";
+"Shell" = "Terminal";
+
+/* Registry mode picker */
+"Featured" = "Destacados";
+"Search" = "Buscar";
+
+/* Registry categories */
+"Databases" = "Bases de datos";
+"Web & Proxy" = "Web y Proxy";
+"Monitoring" = "Monitoreo";
+"Dev Tools" = "Herramientas de desarrollo";
+"Apps" = "Aplicaciones";
+"Messaging" = "Mensajería";
+"Security" = "Seguridad";
+
+/* Container state (ContainerState.label) */
+"Running" = "En ejecución";
+"Stopped" = "Detenido";
+"Paused" = "Pausado";
+"Unknown" = "Desconocido";
+
+/* App menu / commands */
+"Refresh" = "Actualizar";
+"Search…" = "Buscar…";
+"Run Container…" = "Ejecutar contenedor…";
+
+/* Sidebar */
+"Starting service…" = "Iniciando servicio…";
+"Apple Container not installed" = "Apple Container no está instalado";
+"Service not running" = "Servicio detenido";
+"Start" = "Iniciar";
+"Service running" = "Servicio en ejecución";
+"Stop" = "Detener";
+
+/* Menu bar */
+"%lld running · %lld stopped" = "%lld en ejecución · %lld detenidos";
+"No containers" = "No hay contenedores";
+"Open ContainerUI" = "Abrir ContainerUI";
+"Quit ContainerUI" = "Salir de ContainerUI";
+"Error" = "Error";
+"Stop %@" = "Detener %@";
+"Start %@" = "Iniciar %@";
+
+/* Containers list */
+"Search containers…" = "Buscar contenedores…";
+"Clear search" = "Borrar búsqueda";
+"No results for \"%@\"" = "Sin resultados para \"%@\"";
+"%lld stopped" = "%lld detenidos";
+"Refresh (⌘R)" = "Actualizar (⌘R)";
+"Refresh containers" = "Actualizar contenedores";
+"Prune 1 stopped container" = "Vaciar 1 contenedor detenido";
+"Prune %lld stopped containers" = "Vaciar %lld contenedores detenidos";
+"Run new container" = "Ejecutar nuevo contenedor";
+"Remove 1 stopped container?" = "¿Quitar 1 contenedor detenido?";
+"Remove %lld stopped containers?" = "¿Quitar %lld contenedores detenidos?";
+"Remove" = "Quitar";
+"Cancel" = "Cancelar";
+"This action cannot be undone." = "Esta acción no se puede deshacer.";
+"Install Apple Container with Homebrew to manage\nlightweight macOS VMs." = "Instalá Apple Container con Homebrew para gestionar\nmáquinas virtuales livianas de macOS.";
+"Install Homebrew (if needed)" = "Instalar Homebrew (si hace falta)";
+"Add the Apple Container tap" = "Agregar el tap de Apple Container";
+"Install Apple Container" = "Instalar Apple Container";
+"Start the service" = "Iniciar el servicio";
+"Service is not running" = "El servicio no está en ejecución";
+"The Apple Container daemon needs to be started before you can manage containers." = "El daemon de Apple Container debe iniciarse antes de poder gestionar contenedores.";
+"Start Service" = "Iniciar servicio";
+"Run your first container to get started." = "Ejecutá tu primer contenedor para empezar.";
+"Run Container" = "Ejecutar contenedor";
+"Starting Apple Container…" = "Iniciando Apple Container…";
+"This may take a few seconds" = "Esto puede tardar unos segundos";
+"Connecting…" = "Conectando…";
+
+/* Container card */
+"Open shell" = "Abrir terminal";
+"Restart" = "Reiniciar";
+"Kill" = "Forzar cierre";
+"IP" = "IP";
+"Memory" = "Memoria";
+"CPUs" = "CPUs";
+"Arch" = "Arq.";
+"Uptime" = "Actividad";
+"State" = "Estado";
+"Remove \"%@\"?" = "¿Quitar \"%@\"?";
+"Kill \"%@\"?" = "¿Forzar el cierre de \"%@\"?";
+"Kill sends SIGKILL immediately." = "Forzar el cierre envía SIGKILL de inmediato.";
+
+/* Container detail */
+"Copy file from container…" = "Copiar archivo desde el contenedor…";
+"Copy file to container…" = "Copiar archivo al contenedor…";
+"Export filesystem…" = "Exportar sistema de archivos…";
+"File actions" = "Acciones de archivos";
+"Copy file from container" = "Copiar archivo desde el contenedor";
+"/path/inside/container" = "/ruta/dentro/del/contenedor";
+"Choose destination…" = "Elegir destino…";
+"Copy \"%@\" to container" = "Copiar \"%@\" al contenedor";
+
+/* Info tab */
+"ID" = "ID";
+"Image" = "Imagen";
+"OS" = "SO";
+"Copy %@" = "Copiar %@";
+"Copied" = "Copiado";
+"Mounts" = "Montajes";
+"Environment" = "Entorno";
+"Ports" = "Puertos";
+"Resources" = "Recursos";
+"Open in browser" = "Abrir en el navegador";
+"Custom port…" = "Puerto personalizado…";
+"Open" = "Abrir";
+"Start container" = "Iniciar contenedor";
+
+/* Logs tab */
+"Last" = "Últimas";
+"lines" = "líneas";
+"No logs available" = "No hay registros disponibles";
+"Refresh logs" = "Actualizar registros";
+
+/* Stats tab */
+"CPU Usage" = "Uso de CPU";
+"Net In" = "Entrada de red";
+"Net Out" = "Salida de red";
+"Memory limit" = "Límite de memoria";
+"Architecture" = "Arquitectura";
+"CPU % (last 2 min)" = "% de CPU (últimos 2 min)";
+"Memory (last 2 min)" = "Memoria (últimos 2 min)";
+"Loading stats…" = "Cargando estadísticas…";
+"Container is not running" = "El contenedor no está en ejecución";
+"Allocated Resources" = "Recursos asignados";
+
+/* Exec tab */
+"Run" = "Ejecutar";
+"Open in Terminal" = "Abrir en Terminal";
+"Run a command to see its output here." = "Ejecutá un comando para ver su salida acá.";
+
+/* Images list */
+"Search images…" = "Buscar imágenes…";
+"No images" = "No hay imágenes";
+"Pull an image" = "Descargar una imagen";
+"Refresh images" = "Actualizar imágenes";
+"%lld unused" = "%lld sin usar";
+"Prune 1 unused image" = "Vaciar 1 imagen sin uso";
+"Prune %lld unused images" = "Vaciar %lld imágenes sin uso";
+"Pull image" = "Descargar imagen";
+"In use — container running" = "En uso — contenedor en ejecución";
+"In use — container stopped" = "En uso — contenedor detenido";
+"Not in use" = "Sin uso";
+"Run container from this image" = "Ejecutar contenedor desde esta imagen";
+"Run container from %@" = "Ejecutar contenedor desde %@";
+"Delete image" = "Eliminar imagen";
+"Delete %@" = "Eliminar %@";
+"Delete \"%@\"?" = "¿Eliminar \"%@\"?";
+"This will remove the image from local storage." = "Esto eliminará la imagen del almacenamiento local.";
+"Pull" = "Descargar";
+"Image reference" = "Referencia de imagen";
+"e.g. nginx:latest, postgres:16" = "ej. nginx:latest, postgres:16";
+"Pulling %@…" = "Descargando %@…";
+
+/* Image detail */
+"Details" = "Detalles";
+"Full name" = "Nombre completo";
+"Tag" = "Etiqueta";
+"Ref" = "Ref";
+"Digest" = "Digest";
+"Used by" = "Usada por";
+"Not used by any container" = "No la usa ningún contenedor";
+"Pull command" = "Comando de descarga";
+"Run container" = "Ejecutar contenedor";
+"Delete" = "Eliminar";
+"Stop all containers using this image before deleting." = "Detené todos los contenedores que usan esta imagen antes de eliminarla.";
+"%lld running" = "%lld en ejecución";
+"Unused" = "Sin usar";
+"Copy command" = "Copiar comando";
+
+/* Volumes list */
+"No volumes" = "No hay volúmenes";
+"Create volume" = "Crear volumen";
+"Refresh volumes" = "Actualizar volúmenes";
+"Prune unused volumes" = "Vaciar volúmenes sin uso";
+"Delete volume" = "Eliminar volumen";
+"Delete volume \"%@\"?" = "¿Eliminar el volumen \"%@\"?";
+"All data stored in this volume will be lost." = "Se perderán todos los datos almacenados en este volumen.";
+"Volume name" = "Nombre del volumen";
+"my-volume" = "mi-volumen";
+"Create" = "Crear";
+
+/* Volume detail */
+"Mount in a container" = "Montar en un contenedor";
+"Name" = "Nombre";
+"Type" = "Tipo";
+"Driver" = "Controlador";
+"Options" = "Opciones";
+"Use this volume when running a container by adding a mount:" = "Usá este volumen al ejecutar un contenedor agregando un montaje:";
+"Copy mount flag" = "Copiar el flag de montaje";
+"All data stored in this volume will be permanently lost." = "Se perderán permanentemente todos los datos almacenados en este volumen.";
+
+/* Registry */
+"Fetching Docker Hub data…" = "Obteniendo datos de Docker Hub…";
+"Search Docker Hub…" = "Buscar en Docker Hub…";
+"Search for images on Docker Hub" = "Buscá imágenes en Docker Hub";
+"nginx, postgres, redis…" = "nginx, postgres, redis…";
+"Searching Docker Hub…" = "Buscando en Docker Hub…";
+"Updating…" = "Actualizando…";
+"Pulled" = "Descargada";
+"Official" = "Oficial";
+
+/* Registry detail */
+"About" = "Acerca de";
+"Default Configuration" = "Configuración predeterminada";
+"pulls" = "descargas";
+"stars" = "estrellas";
+"Environment Variables" = "Variables de entorno";
+"Already pulled" = "Ya descargada";
+
+/* Build */
+"Build context" = "Contexto de compilación";
+"No folder selected" = "No se seleccionó ninguna carpeta";
+"Choose…" = "Elegir…";
+"Found %@" = "Se encontró %@";
+"No Dockerfile or Containerfile in %@" = "No hay Dockerfile ni Containerfile en %@";
+"name:tag, e.g. myapp:latest" = "nombre:etiqueta, ej. myapp:latest";
+"Build Args (optional)" = "Argumentos de compilación (opcional)";
+"Remove build argument" = "Quitar argumento de compilación";
+"Add build arg" = "Agregar argumento";
+"Build log" = "Registro de compilación";
+"Building…" = "Compilando…";
+"Build Image" = "Compilar imagen";
+
+/* Command palette */
+"Search containers, images, volumes…" = "Buscar contenedores, imágenes, volúmenes…";
+"Nothing to search yet" = "Todavía no hay nada para buscar";
+"No matches" = "Sin coincidencias";
+"navigate" = "navegar";
+"select" = "seleccionar";
+"close" = "cerrar";
+
+/* System logs */
+"Filter logs…" = "Filtrar registros…";
+"Clear filter" = "Borrar filtro";
+"Loading system logs…" = "Cargando registros del sistema…";
+"System logs" = "Registros del sistema";
+
+/* System stats */
+"Service" = "Servicio";
+"Stop service" = "Detener servicio";
+"Start service" = "Iniciar servicio";
+"App root" = "Directorio de la app";
+"Install root" = "Directorio de instalación";
+"API version" = "Versión de la API";
+"Unknown — service may not be running" = "Desconocido — es posible que el servicio no esté en ejecución";
+"Disk usage" = "Uso de disco";
+"Total" = "Total";
+"Active" = "Activo";
+"Size" = "Tamaño";
+"Reclaimable" = "Recuperable";
+"Version" = "Versión";
+"System" = "Sistema";
+"Refresh system info" = "Actualizar info del sistema";
+
+/* Settings */
+"Binary" = "Binario";
+"Path" = "Ruta";
+"Preferences" = "Preferencias";
+"Refresh every" = "Actualizar cada";
+"Default browser port" = "Puerto del navegador por defecto";
+"DNS" = "DNS";
+"Set up a local DNS domain so containers are accessible by name (e.g. sonarqube.local)." = "Configurá un dominio DNS local para acceder a los contenedores por nombre (ej. sonarqube.local).";
+"Create .local domain" = "Crear dominio .local";
+"Remove .local domain" = "Quitar dominio .local";
+"Registries" = "Registros";
+"No registry logins" = "No hay inicios de sesión de registro";
+"Log Out" = "Cerrar sesión";
+"Add registry login…" = "Agregar inicio de sesión de registro…";
+"App" = "App";
+"Backend" = "Backend";
+"Source" = "Fuente";
+
+/* Registry login sheet */
+"Add Registry Login" = "Agregar inicio de sesión de registro";
+"Server" = "Servidor";
+"ghcr.io" = "ghcr.io";
+"Username" = "Usuario";
+"your-username" = "tu-usuario";
+"Password / Token" = "Contraseña / Token";
+"personal access token" = "token de acceso personal";
+"Logging in…" = "Iniciando sesión…";
+"Log In" = "Iniciar sesión";
+
+/* Run container sheet */
+"Close" = "Cerrar";
+"Leave empty for auto-generated name" = "Dejar vacío para un nombre autogenerado";
+"Port Mappings" = "Mapeo de puertos";
+"Host" = "Host";
+"Container" = "Contenedor";
+"Remove port mapping" = "Quitar mapeo de puerto";
+"Add port" = "Agregar puerto";
+"KEY" = "CLAVE";
+"value" = "valor";
+"Remove environment variable" = "Quitar variable de entorno";
+"Add variable" = "Agregar variable";
+"Volume Mounts" = "Montajes de volumen";
+"volume-name or /host/path" = "nombre-de-volumen o /ruta/en/el/host";
+"Container path" = "Ruta en el contenedor";
+"Remove volume mount" = "Quitar montaje de volumen";
+"Add mount" = "Agregar montaje";
+"From existing volume" = "Desde un volumen existente";
+"Command preview" = "Vista previa del comando";
+"Running…" = "Ejecutando…";
+"Name (optional)" = "Nombre (opcional)";

@@ -4,9 +4,9 @@ import SwiftUI
 /// a path inside the container (remote source when copying out, remote
 /// destination when copying in).
 struct PathPromptSheet: View {
-    let title: String
-    let placeholder: String
-    let confirmLabel: String
+    let title: LocalizedStringKey
+    let placeholder: LocalizedStringKey
+    let confirmLabel: LocalizedStringKey
     @State private var path = ""
     @Environment(\.dismiss) private var dismiss
     let onConfirm: (String) -> Void

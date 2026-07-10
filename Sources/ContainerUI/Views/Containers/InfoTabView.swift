@@ -7,16 +7,18 @@ struct InfoTabView: View {
     @State private var copiedKey: String?
     @State private var detail: ContainerDetail?
 
-    private var rows: [(String, String)] {
+    /// `key` is a stable, non-localized identifier used for copy-button logic;
+    /// `label` is the localized display text.
+    private var rows: [(key: String, label: String, value: String)] {
         [
-            ("ID",      container.id),
-            ("Image",   container.image),
-            ("OS",      "\(container.os) / \(container.arch)"),
-            ("State",   container.state.label),
-            ("IP",      container.ip.isEmpty ? "—" : container.ip),
-            ("CPUs",    "\(container.cpus)"),
-            ("Memory",  container.memory),
-            ("Uptime",  container.state.isRunning ? container.uptimeDisplay : "—"),
+            ("ID",     String(localized: "ID"),     container.id),
+            ("Image",  String(localized: "Image"),  container.image),
+            ("OS",     String(localized: "OS"),      "\(container.os) / \(container.arch)"),
+            ("State",  String(localized: "State"),  container.state.label),
+            ("IP",     String(localized: "IP"),     container.ip.isEmpty ? "—" : container.ip),
+            ("CPUs",   String(localized: "CPUs"),   "\(container.cpus)"),
+            ("Memory", String(localized: "Memory"), container.memory),
+            ("Uptime", String(localized: "Uptime"), container.state.isRunning ? container.uptimeDisplay : "—"),
         ]
     }
 
@@ -52,9 +54,9 @@ struct InfoTabView: View {
             VStack(alignment: .leading, spacing: 0) {
 
                 // Info rows
-                ForEach(rows, id: \.0) { key, value in
+                ForEach(rows, id: \.key) { key, label, value in
                     HStack(alignment: .center, spacing: 8) {
-                        Text(key)
+                        Text(label)
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .frame(width: 64, alignment: .leading)
@@ -75,8 +77,8 @@ struct InfoTabView: View {
                                     .foregroundStyle(copiedKey == key ? Color.green : Color(nsColor: .tertiaryLabelColor))
                             }
                             .buttonStyle(.plain)
-                            .help("Copy \(key)")
-                            .accessibilityLabel(copiedKey == key ? "Copied" : "Copy \(key)")
+                            .help(LocalizedStringKey("Copy \(label)"))
+                            .accessibilityLabel(copiedKey == key ? "Copied" : LocalizedStringKey("Copy \(label)"))
                             .disabled(value == "—")
                         }
                     }
@@ -119,9 +121,9 @@ struct InfoTabView: View {
                         }
 
                         SectionCard(title: "Resources") {
-                            KeyValueRow(key: "CPUs", value: "\(detail.cpus)")
+                            KeyValueRow(key: String(localized: "CPUs"), value: "\(detail.cpus)")
                             Divider()
-                            KeyValueRow(key: "Memory", value: formatBytes(detail.memoryInBytes))
+                            KeyValueRow(key: String(localized: "Memory"), value: formatBytes(detail.memoryInBytes))
                         }
                     }
                     .padding(.horizontal, 12)

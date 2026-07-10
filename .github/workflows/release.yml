@@ -31,6 +31,7 @@ jobs:
           cp .build/release/ContainerUI ContainerUI.app/Contents/MacOS/
           cp Info.plist ContainerUI.app/Contents/
           cp Resources/AppIcon.icns ContainerUI.app/Contents/Resources/
+          cp -R .build/release/ContainerUI_ContainerUI.bundle ContainerUI.app/Contents/Resources/
           codesign --force --deep --sign - ContainerUI.app
 
       - name: Zip app bundle

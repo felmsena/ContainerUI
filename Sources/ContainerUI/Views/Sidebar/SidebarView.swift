@@ -10,7 +10,7 @@ struct SidebarView: View {
 
     var body: some View {
         List(SidebarItem.allCases, id: \.self, selection: $selected) { item in
-            Label(item.rawValue, systemImage: item.icon)
+            Label(LocalizedStringKey(item.rawValue), systemImage: item.icon)
                 .badge(item == .containers && runningCount > 0 ? runningCount : 0)
         }
         .listStyle(.sidebar)
@@ -68,7 +68,7 @@ struct SidebarView: View {
     }
 
     @ViewBuilder
-    private func statusBanner(icon: String, iconColor: Color, message: String, action: (String, () -> Void)?) -> some View {
+    private func statusBanner(icon: String, iconColor: Color, message: LocalizedStringKey, action: (LocalizedStringKey, () -> Void)?) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .foregroundStyle(iconColor)

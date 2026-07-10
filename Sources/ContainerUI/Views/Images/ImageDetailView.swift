@@ -219,7 +219,7 @@ struct ImageDetailView: View {
     }
 
     @ViewBuilder
-    private func sectionHeader(_ title: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.tertiary)
@@ -228,7 +228,7 @@ struct ImageDetailView: View {
     }
 
     @ViewBuilder
-    private func infoRow(label: String, value: String) -> some View {
+    private func infoRow(label: LocalizedStringKey, value: String) -> some View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
@@ -245,7 +245,7 @@ struct ImageDetailView: View {
     @ViewBuilder
     private func copyableRow(label: String, value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(width: 70, alignment: .leading)

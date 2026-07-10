@@ -17,7 +17,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 SectionCard(title: "Binary") {
-                    KeyValueRow(key: "Path", value: containerBin)
+                    KeyValueRow(key: String(localized: "Path"), value: containerBin)
 
                     Divider()
 
@@ -144,9 +144,9 @@ struct SettingsView: View {
                 }
 
                 SectionCard(title: "About") {
-                    KeyValueRow(key: "App",     value: "ContainerUI")
-                    KeyValueRow(key: "Backend", value: "Apple Container \(service.versionRows.first?.version ?? "")")
-                    KeyValueRow(key: "Source",  value: "github.com/apple/container")
+                    KeyValueRow(key: String(localized: "App"),     value: "ContainerUI")
+                    KeyValueRow(key: String(localized: "Backend"), value: "Apple Container \(service.versionRows.first?.version ?? "")")
+                    KeyValueRow(key: String(localized: "Source"),  value: "github.com/apple/container")
                 }
             }
             .padding(16)

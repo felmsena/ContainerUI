@@ -88,7 +88,7 @@ struct MenuBarView: View {
     }
 
     @ViewBuilder
-    private func menuSection(_ title: String, containers: [ContainerInfo]) -> some View {
+    private func menuSection(_ title: LocalizedStringKey, containers: [ContainerInfo]) -> some View {
         VStack(spacing: 0) {
             HStack {
                 Text(title)
@@ -191,7 +191,7 @@ struct MenuBarContainerRow: View {
 
 struct MenuBarAction: View {
     let icon: String
-    let label: String
+    let label: LocalizedStringKey
     var role: ButtonRole? = nil
     let action: () -> Void
     @State private var isHovering = false

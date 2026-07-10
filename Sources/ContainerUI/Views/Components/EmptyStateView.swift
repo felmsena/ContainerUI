@@ -5,8 +5,8 @@ import SwiftUI
 struct EmptyStateView<Actions: View>: View {
     let icon: String
     var iconColor: Color? = nil
-    let title: String
-    var subtitle: String? = nil
+    let title: LocalizedStringKey
+    var subtitle: LocalizedStringKey? = nil
     var detail: String? = nil
     @ViewBuilder var actions: () -> Actions
 
@@ -48,7 +48,7 @@ struct EmptyStateView<Actions: View>: View {
 }
 
 extension EmptyStateView where Actions == EmptyView {
-    init(icon: String, iconColor: Color? = nil, title: String, subtitle: String? = nil, detail: String? = nil) {
+    init(icon: String, iconColor: Color? = nil, title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil, detail: String? = nil) {
         self.icon = icon
         self.iconColor = iconColor
         self.title = title

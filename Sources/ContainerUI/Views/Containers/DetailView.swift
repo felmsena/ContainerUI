@@ -23,7 +23,7 @@ struct DetailView: View {
         VStack(spacing: 0) {
             Picker("", selection: $tab) {
                 ForEach(DetailTab.allCases, id: \.self) { t in
-                    Text(t.rawValue).tag(t)
+                    Text(LocalizedStringKey(t.rawValue)).tag(t)
                         .disabled(t == .shell && !container.state.isRunning)
                 }
             }

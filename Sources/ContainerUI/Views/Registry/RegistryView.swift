@@ -45,7 +45,7 @@ struct RegistryView: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $mode) {
-                ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                ForEach(Mode.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -90,7 +90,7 @@ struct RegistryView: View {
 
                     ForEach(categories) { category in
                         VStack(alignment: .leading, spacing: 10) {
-                            Label(category.name, systemImage: category.icon)
+                            Label(LocalizedStringKey(category.name), systemImage: category.icon)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 16)

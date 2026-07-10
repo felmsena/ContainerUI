@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SectionCard<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -34,7 +34,7 @@ struct SectionCard<Content: View>: View {
 struct CopyButton: View {
     let text: String
     var size: CGFloat = 11
-    var help: String = "Copy"
+    var help: LocalizedStringKey = "Copy"
     @State private var copied = false
 
     var body: some View {

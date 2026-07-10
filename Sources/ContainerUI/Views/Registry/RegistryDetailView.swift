@@ -146,9 +146,7 @@ struct RegistryDetailView: View {
 
                 // Error
                 if let err = pullError {
-                    Text(err)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    ErrorBanner(message: err) { pullError = nil }
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
                 }
@@ -214,7 +212,7 @@ struct RegistryDetailView: View {
     // MARK: – Helpers
 
     @ViewBuilder
-    private func sectionHeader(_ title: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(.tertiary)
@@ -223,7 +221,7 @@ struct RegistryDetailView: View {
     }
 
     @ViewBuilder
-    private func configRow(label: String, value: String, monospaced: Bool = false) -> some View {
+    private func configRow(label: LocalizedStringKey, value: String, monospaced: Bool = false) -> some View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
@@ -238,7 +236,7 @@ struct RegistryDetailView: View {
     }
 
     @ViewBuilder
-    private func statPill(icon: String, value: String, label: String) -> some View {
+    private func statPill(icon: String, value: String, label: LocalizedStringKey) -> some View {
         VStack(spacing: 3) {
             HStack(spacing: 4) {
                 Image(systemName: icon)

@@ -22,7 +22,7 @@ struct BuildView: View {
 
                     formSection("Build context") {
                         HStack(spacing: 8) {
-                            Text(contextDir?.path ?? "No folder selected")
+                            Text(contextDir?.path ?? String(localized: "No folder selected"))
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundStyle(contextDir == nil ? .secondary : .primary)
                                 .lineLimit(1)
@@ -90,13 +90,7 @@ struct BuildView: View {
                     }
 
                     if let error {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        ErrorBanner(message: error) { self.error = nil }
                     }
 
                     if isBuilding || !logText.isEmpty {
@@ -156,7 +150,7 @@ struct BuildView: View {
     }
 
     @ViewBuilder
-    private func formSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 12, weight: .medium))

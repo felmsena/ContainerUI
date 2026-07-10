@@ -19,6 +19,15 @@ struct ContainerListView: View {
         service.containers.filter { !$0.state.isRunning }.count
     }
 
+    /// Split into fully-formed literals so each pluralization/verb combo
+    /// gets its own, grammatically correct translation.
+    private var pruneContainersLabel: LocalizedStringKey {
+        stoppedCount == 1 ? "Prune 1 stopped container" : "Prune \(stoppedCount) stopped containers"
+    }
+    private var removeContainersAlertTitle: LocalizedStringKey {
+        stoppedCount == 1 ? "Remove 1 stopped container?" : "Remove \(stoppedCount) stopped containers?"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
@@ -99,10 +108,10 @@ struct ContainerListView: View {
                         }
                     }
                 }
-                .help("Prune \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")")
+                .help(pruneContainersLabel)
                 .foregroundStyle(stoppedCount > 0 ? .orange : .secondary)
                 .disabled(stoppedCount == 0)
-                .accessibilityLabel("Prune \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")")
+                .accessibilityLabel(pruneContainersLabel)
 
                 Button { service.showRunSheet = true } label: {
                     Image(systemName: "plus")
@@ -112,7 +121,7 @@ struct ContainerListView: View {
                 .accessibilityLabel("Run new container")
             }
         }
-        .alert("Remove \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")?", isPresented: $showPruneAlert) {
+        .alert(removeContainersAlertTitle, isPresented: $showPruneAlert) {
             Button("Remove", role: .destructive) {
                 Task { await service.pruneContainers() }
             }
@@ -221,7 +230,7 @@ struct ContainerListView: View {
 
 private struct OnboardingStep: View {
     let number: Int
-    let title: String
+    let title: LocalizedStringKey
     let code: String
 
     var body: some View {

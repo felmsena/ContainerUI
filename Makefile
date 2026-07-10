@@ -9,6 +9,8 @@ build:
 	@cp .build/debug/$(APP) $(BUNDLE)/Contents/MacOS/
 	@cp Info.plist $(BUNDLE)/Contents/
 	@cp Resources/AppIcon.icns $(BUNDLE)/Contents/Resources/
+	@rm -rf $(BUNDLE)/Contents/Resources/$(APP)_$(APP).bundle
+	@cp -R .build/debug/$(APP)_$(APP).bundle $(BUNDLE)/Contents/Resources/
 	@codesign --force --deep --sign - $(BUNDLE) 2>/dev/null || true
 	@echo "✓  $(BUNDLE) ready"
 
@@ -22,6 +24,8 @@ release:
 	@cp .build/release/$(APP) $(BUNDLE)/Contents/MacOS/
 	@cp Info.plist $(BUNDLE)/Contents/
 	@cp Resources/AppIcon.icns $(BUNDLE)/Contents/Resources/
+	@rm -rf $(BUNDLE)/Contents/Resources/$(APP)_$(APP).bundle
+	@cp -R .build/release/$(APP)_$(APP).bundle $(BUNDLE)/Contents/Resources/
 	@codesign --force --deep --sign - $(BUNDLE)
 	@pkill -x $(APP) 2>/dev/null || true
 	@open $(BUNDLE)

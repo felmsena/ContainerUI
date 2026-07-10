@@ -48,7 +48,7 @@ struct LogsTabView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    Text(logs.isEmpty ? "No logs available" : logs)
+                    Text(logs.isEmpty ? String(localized: "No logs available") : logs)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(logs.isEmpty ? .secondary : .primary)
                         .frame(maxWidth: .infinity, alignment: .leading)

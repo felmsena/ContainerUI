@@ -35,9 +35,9 @@ struct SystemStatsView: View {
 
                         Divider()
 
-                        KeyValueRow(key: "App root",     value: status.appRoot)
-                        KeyValueRow(key: "Install root", value: status.installRoot)
-                        KeyValueRow(key: "API version",  value: status.apiserverVersion)
+                        KeyValueRow(key: String(localized: "App root"),     value: status.appRoot)
+                        KeyValueRow(key: String(localized: "Install root"), value: status.installRoot)
+                        KeyValueRow(key: String(localized: "API version"),  value: status.apiserverVersion)
                     }
                 } else {
                     SectionCard(title: "Service") {

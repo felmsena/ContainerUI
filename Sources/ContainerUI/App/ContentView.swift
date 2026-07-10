@@ -74,7 +74,7 @@ struct ContentView: View {
                     EmptyStateView(icon: "externaldrive", title: "Select a volume")
                 }
             default:
-                EmptyStateView(icon: service.sidebarItem.icon, title: service.sidebarItem.rawValue)
+                EmptyStateView(icon: service.sidebarItem.icon, title: LocalizedStringKey(service.sidebarItem.rawValue))
             }
         }
         .onChange(of: service.containers) { _, _ in

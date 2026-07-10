@@ -23,6 +23,13 @@ struct ImagesView: View {
         }.count
     }
 
+    /// Split into two fully-formed literals (rather than interpolating an
+    /// English "s" suffix) so each pluralization gets its own, grammatically
+    /// correct translation.
+    private var pruneImagesLabel: LocalizedStringKey {
+        unusedCount == 1 ? "Prune 1 unused image" : "Prune \(unusedCount) unused images"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
@@ -86,9 +93,9 @@ struct ImagesView: View {
                         }
                     }
                 }
-                .help("Prune \(unusedCount) unused image\(unusedCount == 1 ? "" : "s")")
+                .help(pruneImagesLabel)
                 .foregroundStyle(unusedCount > 0 ? .orange : .secondary)
-                .accessibilityLabel("Prune \(unusedCount) unused image\(unusedCount == 1 ? "" : "s")")
+                .accessibilityLabel(pruneImagesLabel)
 
                 Button {
                     pullRef = ""
@@ -188,9 +195,9 @@ struct ImageRowView: View {
 
     private var usageTooltip: String {
         switch usageState {
-        case .running: return "In use — container running"
-        case .stopped: return "In use — container stopped"
-        case .unused:  return "Not in use"
+        case .running: return String(localized: "In use — container running")
+        case .stopped: return String(localized: "In use — container stopped")
+        case .unused:  return String(localized: "Not in use")
         }
     }
 
