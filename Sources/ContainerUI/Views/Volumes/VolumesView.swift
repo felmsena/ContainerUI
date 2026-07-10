@@ -8,17 +8,11 @@ struct VolumesView: View {
     var body: some View {
         VStack(spacing: 0) {
             if service.volumes.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "externaldrive")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.quaternary)
-                    Text("No volumes")
-                        .foregroundStyle(.secondary)
+                EmptyStateView(icon: "externaldrive", title: "No volumes") {
                     Button("Create volume") { showCreateSheet = true }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(service.volumes, selection: $selected) { volume in
                     VolumeRowView(volume: volume, isSelected: selected?.id == volume.id)
@@ -137,9 +131,7 @@ struct CreateVolumeSheet: View {
             }
 
             if let error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                ErrorBanner(message: error) { self.error = nil }
             }
 
             HStack {

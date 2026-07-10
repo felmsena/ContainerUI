@@ -56,21 +56,12 @@ struct SidebarView: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .padding(8)
         case .running:
-            if let error = service.serviceError {
-                statusBanner(
-                    icon: "exclamationmark.triangle.fill",
-                    iconColor: .orange,
-                    message: error,
-                    action: ("Stop", { Task { await service.stopDaemon() } })
-                )
-            } else {
-                statusBanner(
-                    icon: "circle.fill",
-                    iconColor: .green,
-                    message: "Service running",
-                    action: ("Stop", { Task { await service.stopDaemon() } })
-                )
-            }
+            statusBanner(
+                icon: "circle.fill",
+                iconColor: .green,
+                message: "Service running",
+                action: ("Stop", { Task { await service.stopDaemon() } })
+            )
         case .unknown:
             EmptyView()
         }

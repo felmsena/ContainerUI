@@ -47,10 +47,7 @@ struct RegistryLoginSheet: View {
             }
 
             if let error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .lineLimit(3)
+                ErrorBanner(message: error) { self.error = nil }
             }
 
             HStack {

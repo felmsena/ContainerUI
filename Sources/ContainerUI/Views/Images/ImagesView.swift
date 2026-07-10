@@ -45,14 +45,15 @@ struct ImagesView: View {
             Divider()
 
             if filtered.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "photo.stack")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.quaternary)
-                    Text(searchText.isEmpty ? "No images" : "No results")
-                        .foregroundStyle(.secondary)
+                if searchText.isEmpty {
+                    EmptyStateView(icon: "photo.stack", title: "No images") {
+                        Button("Pull an image") { showPullSheet = true }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+                    }
+                } else {
+                    EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(filtered, selection: $selected) { image in
                     ImageRowView(image: image, isSelected: selected?.id == image.id)
@@ -295,10 +296,7 @@ struct PullImageSheet: View {
             }
 
             if let error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .lineLimit(3)
+                ErrorBanner(message: error) { self.error = nil }
             }
 
             HStack {

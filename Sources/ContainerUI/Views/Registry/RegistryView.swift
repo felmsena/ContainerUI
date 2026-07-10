@@ -84,11 +84,8 @@ struct RegistryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     if let error = hubLoadError {
-                        HStack(spacing: 8) {
-                            Image(systemName: "wifi.slash").foregroundStyle(.orange)
-                            Text(error).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 16)
+                        ErrorBanner(message: error) { hubLoadError = nil }
+                            .padding(.horizontal, 16)
                     }
 
                     ForEach(categories) { category in
@@ -160,12 +157,7 @@ struct RegistryView: View {
             Divider()
 
             if searchText.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 40)).foregroundStyle(.quaternary)
-                    Text("Search for images on Docker Hub").foregroundStyle(.secondary)
-                    Text("nginx, postgres, redis…").font(.caption).foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyStateView(icon: "magnifyingglass", title: "Search for images on Docker Hub", subtitle: "nginx, postgres, redis…")
             } else if isSearching && searchResults.isEmpty {
                 VStack(spacing: 12) {
                     ProgressView()
@@ -175,11 +167,7 @@ struct RegistryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if searchResults.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "questionmark.square.dashed").font(.system(size: 40)).foregroundStyle(.quaternary)
-                    Text("No results for \"\(searchText)\"").foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyStateView(icon: "questionmark.square.dashed", title: "No results for \"\(searchText)\"")
             } else {
                 ZStack(alignment: .top) {
                     List(searchResults) { repo in

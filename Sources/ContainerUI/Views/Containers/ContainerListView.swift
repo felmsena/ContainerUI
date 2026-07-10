@@ -121,13 +121,7 @@ struct ContainerListView: View {
     // MARK: – Empty states
 
     private var emptySearch: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 36)).foregroundStyle(.quaternary)
-            Text("No results for \"\(searchText)\"")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
     }
 
     @ViewBuilder
@@ -163,12 +157,11 @@ struct ContainerListView: View {
             .padding()
 
         case .notRunning:
-            StateView(
+            EmptyStateView(
                 icon: "poweroff",
                 iconColor: .orange,
                 title: "Service is not running",
-                subtitle: "The Apple Container daemon needs to be started before you can manage containers.",
-                detail: nil
+                subtitle: "The Apple Container daemon needs to be started before you can manage containers."
             ) {
                 Button {
                     Task { await service.startDaemon() }
@@ -203,12 +196,10 @@ struct ContainerListView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .running:
-            StateView(
+            EmptyStateView(
                 icon: "cube.box",
-                iconColor: nil,
                 title: "No containers",
-                subtitle: "Run your first container to get started.",
-                detail: nil
+                subtitle: "Run your first container to get started."
             ) {
                 Button { service.showRunSheet = true } label: {
                     Label("Run Container", systemImage: "play.fill")
@@ -254,49 +245,5 @@ private struct OnboardingStep: View {
                 .clipShape(RoundedRectangle(cornerRadius: 7))
             }
         }
-    }
-}
-
-// MARK: – Reusable state view
-
-private struct StateView<Actions: View>: View {
-    let icon: String
-    let iconColor: Color?
-    let title: String
-    let subtitle: String
-    let detail: String?
-    @ViewBuilder let actions: () -> Actions
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 44))
-                .foregroundStyle(iconColor.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.quaternary))
-
-            VStack(spacing: 6) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 260)
-            }
-
-            if let detail {
-                Text(detail)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .textSelection(.enabled)
-            }
-
-            actions()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 }

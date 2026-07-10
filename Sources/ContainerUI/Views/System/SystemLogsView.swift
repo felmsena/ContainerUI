@@ -36,12 +36,17 @@ struct SystemLogsView: View {
             if isLoading && logs.isEmpty {
                 ProgressView("Loading system logs…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if displayedLogs.isEmpty {
+                EmptyStateView(
+                    icon: "terminal",
+                    title: filterText.isEmpty ? "No logs" : "No results for \"\(filterText)\""
+                )
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        Text(displayedLogs.isEmpty ? "No logs" : displayedLogs)
+                        Text(displayedLogs)
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(displayedLogs.isEmpty ? .secondary : .primary)
+                            .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                             .padding(12)

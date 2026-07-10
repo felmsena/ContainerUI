@@ -51,30 +51,30 @@ struct ContentView: View {
                 if let container = selectedContainer {
                     DetailView(container: container).id(container.id)
                 } else {
-                    emptyDetail(icon: "square.stack.3d.up", text: "Select a container")
+                    EmptyStateView(icon: "square.stack.3d.up", title: "Select a container")
                 }
             case .images:
                 if let image = selectedImage {
                     ImageDetailView(image: image).id(image.id)
                 } else {
-                    emptyDetail(icon: "shippingbox", text: "Select an image")
+                    EmptyStateView(icon: "shippingbox", title: "Select an image")
                 }
             case .registry:
                 if let entry = selectedRegistryEntry {
                     RegistryDetailView(entry: entry)
                         .id(entry.id)
                 } else {
-                    emptyDetail(icon: "storefront", text: "Select an image")
+                    EmptyStateView(icon: "storefront", title: "Select a registry entry")
                 }
             case .volumes:
                 if let volume = selectedVolume {
                     VolumeDetailView(volume: volume)
                         .id(volume.id)
                 } else {
-                    emptyDetail(icon: "externaldrive", text: "Select a volume")
+                    EmptyStateView(icon: "externaldrive", title: "Select a volume")
                 }
             default:
-                emptyDetail(icon: service.sidebarItem.icon, text: service.sidebarItem.rawValue)
+                EmptyStateView(icon: service.sidebarItem.icon, title: service.sidebarItem.rawValue)
             }
         }
         .onChange(of: service.containers) { _, _ in
@@ -101,17 +101,16 @@ struct ContentView: View {
             RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
                 .environmentObject(service)
         }
-    }
-
-    @ViewBuilder
-    func emptyDetail(icon: String, text: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 44))
-                .foregroundStyle(.quaternary)
-            Text(text)
-                .foregroundStyle(.secondary)
+        .overlay(alignment: .top) {
+            if let error = service.serviceError {
+                ErrorBanner(message: error) {
+                    service.serviceError = nil
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeOut(duration: 0.2), value: service.serviceError)
     }
 }

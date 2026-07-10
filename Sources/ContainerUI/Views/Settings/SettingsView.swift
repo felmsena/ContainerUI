@@ -129,9 +129,7 @@ struct SettingsView: View {
                     }
 
                     if let registryError {
-                        Text(registryError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        ErrorBanner(message: registryError) { self.registryError = nil }
                     }
 
                     Divider()
