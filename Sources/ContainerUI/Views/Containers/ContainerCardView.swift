@@ -5,6 +5,7 @@ struct ContainerCardView: View {
     let isSelected: Bool
     @EnvironmentObject var service: ContainerService
     @State private var showRemoveAlert = false
+    @State private var showKillAlert = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -74,6 +75,42 @@ struct ContainerCardView: View {
                         )
                 )
         )
+        .contextMenu {
+            if container.state.isRunning {
+                Button {
+                    service.openShell(for: container.id)
+                } label: {
+                    Label("Open shell", systemImage: "terminal")
+                }
+                Button {
+                    Task { await service.restart(container.id) }
+                } label: {
+                    Label("Restart", systemImage: "arrow.clockwise")
+                }
+                Button {
+                    Task { await service.stop(container.id) }
+                } label: {
+                    Label("Stop", systemImage: "stop.fill")
+                }
+                Button(role: .destructive) {
+                    showKillAlert = true
+                } label: {
+                    Label("Kill", systemImage: "bolt.fill")
+                }
+            } else {
+                Button {
+                    Task { await service.start(container.id) }
+                } label: {
+                    Label("Start", systemImage: "play.fill")
+                }
+            }
+            Divider()
+            Button(role: .destructive) {
+                showRemoveAlert = true
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+        }
         .alert("Remove \"\(container.id)\"?", isPresented: $showRemoveAlert) {
             Button("Remove", role: .destructive) {
                 Task { await service.remove(container.id) }
@@ -81,6 +118,14 @@ struct ContainerCardView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This action cannot be undone.")
+        }
+        .alert("Kill \"\(container.id)\"?", isPresented: $showKillAlert) {
+            Button("Kill", role: .destructive) {
+                Task { await service.kill(container.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Kill sends SIGKILL immediately.")
         }
     }
 }

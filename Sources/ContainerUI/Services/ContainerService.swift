@@ -153,6 +153,16 @@ final class ContainerService: ObservableObject {
         await fetchContainers()
     }
 
+    func kill(_ id: String) async {
+        _ = try? await shell([bin, "kill", id])
+        await fetchContainers()
+    }
+
+    func pruneContainers() async {
+        _ = try? await shell([bin, "prune"])
+        await fetchContainers()
+    }
+
     func fetchLogs(for id: String, lines: Int = 200) async -> String {
         (try? await shell([bin, "logs", "--tail", "\(lines)", id])) ?? ""
     }

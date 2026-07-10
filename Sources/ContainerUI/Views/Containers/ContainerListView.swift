@@ -5,6 +5,7 @@ struct ContainerListView: View {
     @Binding var selected: ContainerInfo?
     @State private var searchText = ""
     @State private var showRunSheet = false
+    @State private var showPruneAlert = false
 
     private var filtered: [ContainerInfo] {
         guard !searchText.isEmpty else { return service.containers }
@@ -12,6 +13,10 @@ struct ContainerListView: View {
             $0.id.localizedCaseInsensitiveContains(searchText) ||
             $0.image.localizedCaseInsensitiveContains(searchText)
         }
+    }
+
+    private var stoppedCount: Int {
+        service.containers.filter { !$0.state.isRunning }.count
     }
 
     var body: some View {
@@ -65,12 +70,35 @@ struct ContainerListView: View {
                 }
                 .help("Refresh (⌘R)")
 
+                Button {
+                    showPruneAlert = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash.slash")
+                        if stoppedCount > 0 {
+                            Text("\(stoppedCount) stopped")
+                                .font(.system(size: 11))
+                        }
+                    }
+                }
+                .help("Prune \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")")
+                .foregroundStyle(stoppedCount > 0 ? .orange : .secondary)
+                .disabled(stoppedCount == 0)
+
                 Button { showRunSheet = true } label: {
                     Image(systemName: "plus")
                 }
                 .help("Run new container")
                 .disabled(service.daemonState != .running)
             }
+        }
+        .alert("Remove \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")?", isPresented: $showPruneAlert) {
+            Button("Remove", role: .destructive) {
+                Task { await service.pruneContainers() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
         }
         .sheet(isPresented: $showRunSheet) {
             RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
