@@ -5,7 +5,6 @@ struct ImageDetailView: View {
     @EnvironmentObject var service: ContainerService
     @State private var showRunSheet = false
     @State private var showDeleteAlert = false
-    @State private var copiedKey: String?
 
     private var iconInfo: (symbol: String, color: Color) { imageIcon(for: image.name) }
 
@@ -66,8 +65,8 @@ struct ImageDetailView: View {
                     infoRow(label: "Full name", value: image.name)
                     infoRow(label: "Tag",       value: image.tag)
                     infoRow(label: "Registry",  value: registry)
-                    copyableRow(label: "Ref",    value: image.ref,    key: "ref")
-                    copyableRow(label: "Digest", value: image.digest, key: "digest")
+                    copyableRow(label: "Ref",    value: image.ref)
+                    copyableRow(label: "Digest", value: image.digest)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -118,7 +117,7 @@ struct ImageDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     sectionHeader("Pull command")
 
-                    copyableCode("container image pull \(image.ref)", key: "pull")
+                    copyableCode("container image pull \(image.ref)")
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -244,7 +243,7 @@ struct ImageDetailView: View {
     }
 
     @ViewBuilder
-    private func copyableRow(label: String, value: String, key: String) -> some View {
+    private func copyableRow(label: String, value: String) -> some View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
@@ -257,23 +256,12 @@ struct ImageDetailView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(value, forType: .string)
-                copiedKey = key
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedKey = nil }
-            } label: {
-                Image(systemName: copiedKey == key ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 11))
-                    .foregroundStyle(copiedKey == key ? Color.green : Color(nsColor: .tertiaryLabelColor))
-            }
-            .buttonStyle(.plain)
-            .help("Copy \(label)")
+            CopyButton(text: value, help: "Copy \(label)")
         }
     }
 
     @ViewBuilder
-    private func copyableCode(_ code: String, key: String) -> some View {
+    private func copyableCode(_ code: String) -> some View {
         HStack(spacing: 6) {
             Text(code)
                 .font(.system(size: 12, design: .monospaced))
@@ -284,18 +272,7 @@ struct ImageDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 7))
                 .textSelection(.enabled)
 
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(code, forType: .string)
-                copiedKey = key
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedKey = nil }
-            } label: {
-                Image(systemName: copiedKey == key ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 12))
-                    .foregroundStyle(copiedKey == key ? Color.green : Color(nsColor: .tertiaryLabelColor))
-            }
-            .buttonStyle(.plain)
-            .help("Copy command")
+            CopyButton(text: code, size: 12, help: "Copy command")
         }
     }
 }

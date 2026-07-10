@@ -27,6 +27,32 @@ struct SectionCard<Content: View>: View {
     }
 }
 
+/// Icon-only button that copies `text` to the pasteboard and shows a
+/// checkmark for 1.5s as feedback. Self-contained: each instance tracks
+/// its own copied state, so multiple buttons in one view don't need a
+/// shared "which one was copied" key.
+struct CopyButton: View {
+    let text: String
+    var size: CGFloat = 11
+    var help: String = "Copy"
+    @State private var copied = false
+
+    var body: some View {
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            copied = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.system(size: size))
+                .foregroundStyle(copied ? Color.green : Color(nsColor: .tertiaryLabelColor))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
 struct KeyValueRow: View {
     let key: String
     let value: String

@@ -188,7 +188,6 @@ private struct OnboardingStep: View {
     let number: Int
     let title: String
     let code: String
-    @State private var copied = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -208,18 +207,7 @@ private struct OnboardingStep: View {
                         .lineLimit(2)
                         .textSelection(.enabled)
                     Spacer(minLength: 0)
-                    Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(code, forType: .string)
-                        copied = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
-                    } label: {
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 11))
-                            .foregroundStyle(copied ? Color.green : Color(nsColor: .tertiaryLabelColor))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Copy command")
+                    CopyButton(text: code, help: "Copy command")
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
                 .background(Color(nsColor: .controlBackgroundColor))
