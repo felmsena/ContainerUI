@@ -153,6 +153,7 @@ struct CardButton: View {
         }
         .buttonStyle(.plain)
         .help(tooltip)
+        .accessibilityLabel(tooltip)
     }
 }
 

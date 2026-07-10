@@ -46,6 +46,7 @@ struct RunContainerSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Close")
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -91,6 +92,7 @@ struct RunContainerSheet: View {
                                             .foregroundStyle(.red)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("Remove port mapping")
                                 }
                             }
                             Button {
@@ -144,6 +146,7 @@ struct RunContainerSheet: View {
                                             .foregroundStyle(.red)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("Remove environment variable")
                                 }
                             }
                             Button {
@@ -181,6 +184,7 @@ struct RunContainerSheet: View {
                                     }
                                     .buttonStyle(.plain)
                                     .padding(.top, 14)
+                                    .accessibilityLabel("Remove volume mount")
                                 }
                             }
                             HStack(spacing: 12) {
@@ -229,13 +233,7 @@ struct RunContainerSheet: View {
                     }
 
                     if let error {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        ErrorBanner(message: error) { self.error = nil }
                     }
                 }
                 .padding(20)

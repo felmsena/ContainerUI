@@ -24,7 +24,9 @@ struct SystemLogsView: View {
                 if !filterText.isEmpty {
                     Button { filterText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear filter")
                 }
             }
             .padding(.horizontal, 10)
@@ -70,7 +72,9 @@ struct SystemLogsView: View {
                             Task { await load() }
                         } label: {
                             Image(systemName: "arrow.clockwise")
-                        }.help("Refresh logs")
+                        }
+                        .help("Refresh logs")
+                        .accessibilityLabel("Refresh logs")
                     }
                 }
             }

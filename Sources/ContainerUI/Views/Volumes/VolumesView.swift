@@ -28,19 +28,25 @@ struct VolumesView: View {
                     Task { await service.fetchVolumes() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                }.help("Refresh")
+                }
+                .help("Refresh")
+                .accessibilityLabel("Refresh volumes")
 
                 Button {
                     Task { await service.pruneVolumes() }
                 } label: {
                     Image(systemName: "trash.slash")
-                }.help("Prune unused volumes")
+                }
+                .help("Prune unused volumes")
+                .accessibilityLabel("Prune unused volumes")
 
                 Button {
                     showCreateSheet = true
                 } label: {
                     Image(systemName: "plus")
-                }.help("Create volume")
+                }
+                .help("Create volume")
+                .accessibilityLabel("Create volume")
             }
         }
         .task { await service.fetchVolumes() }
@@ -96,6 +102,7 @@ struct VolumeRowView: View {
             }
             .buttonStyle(.plain)
             .help("Delete volume")
+            .accessibilityLabel("Delete \(volume.name)")
         }
         .padding(.vertical, 4)
         .alert("Delete volume \"\(volume.name)\"?", isPresented: $showDeleteAlert) {

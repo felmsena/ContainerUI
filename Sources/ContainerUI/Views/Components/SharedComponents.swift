@@ -50,6 +50,7 @@ struct CopyButton: View {
         }
         .buttonStyle(.plain)
         .help(help)
+        .accessibilityLabel(copied ? "Copied" : help)
     }
 }
 

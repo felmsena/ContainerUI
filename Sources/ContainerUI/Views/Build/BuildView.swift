@@ -74,6 +74,7 @@ struct BuildView: View {
                                         Image(systemName: "minus.circle.fill").foregroundStyle(.red)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("Remove build argument")
                                 }
                             }
                             .disabled(isBuilding)

@@ -95,6 +95,7 @@ struct VolumeDetailView: View {
                         }
                         .buttonStyle(.plain)
                         .help("Copy mount flag")
+                        .accessibilityLabel(copied ? "Copied" : "Copy mount flag")
                     }
                 }
                 .padding(.horizontal, 20)

@@ -125,6 +125,8 @@ struct SystemStatsView: View {
                         } label: {
                             Image(systemName: "arrow.clockwise")
                         }
+                        .help("Refresh system info")
+                        .accessibilityLabel("Refresh system info")
                     }
                 }
             }

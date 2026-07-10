@@ -39,6 +39,7 @@ struct LogsTabView: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Refresh logs")
+                .accessibilityLabel("Refresh logs")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

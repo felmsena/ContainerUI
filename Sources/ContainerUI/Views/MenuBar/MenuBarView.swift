@@ -164,6 +164,7 @@ struct MenuBarContainerRow: View {
                 }
                 .buttonStyle(.plain)
                 .help("Stop")
+                .accessibilityLabel("Stop \(container.id)")
             } else {
                 Button {
                     Task { await service.start(container.id) }
@@ -175,6 +176,7 @@ struct MenuBarContainerRow: View {
                 }
                 .buttonStyle(.plain)
                 .help("Start")
+                .accessibilityLabel("Start \(container.id)")
             }
         }
         .padding(.horizontal, 14)

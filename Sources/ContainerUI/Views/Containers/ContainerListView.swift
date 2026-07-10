@@ -34,6 +34,7 @@ struct ContainerListView: View {
                             .foregroundStyle(.tertiary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, 10)
@@ -85,6 +86,7 @@ struct ContainerListView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help("Refresh (⌘R)")
+                .accessibilityLabel("Refresh containers")
 
                 Button {
                     showPruneAlert = true
@@ -100,12 +102,14 @@ struct ContainerListView: View {
                 .help("Prune \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")")
                 .foregroundStyle(stoppedCount > 0 ? .orange : .secondary)
                 .disabled(stoppedCount == 0)
+                .accessibilityLabel("Prune \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")")
 
                 Button { service.showRunSheet = true } label: {
                     Image(systemName: "plus")
                 }
                 .help("Run new container")
                 .disabled(service.daemonState != .running)
+                .accessibilityLabel("Run new container")
             }
         }
         .alert("Remove \(stoppedCount) stopped container\(stoppedCount == 1 ? "" : "s")?", isPresented: $showPruneAlert) {

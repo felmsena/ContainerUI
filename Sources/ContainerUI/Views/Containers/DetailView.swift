@@ -34,24 +34,9 @@ struct DetailView: View {
             Divider()
 
             if let fileActionError {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text(fileActionError)
-                        .font(.system(size: 12))
-                        .lineLimit(2)
-                    Spacer()
-                    Button {
-                        self.fileActionError = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.orange.opacity(0.1))
+                ErrorBanner(message: fileActionError) { self.fileActionError = nil }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
             }
 
             switch tab {
@@ -95,6 +80,7 @@ struct DetailView: View {
                     }
                 }
                 .help("File actions")
+                .accessibilityLabel("File actions")
             }
         }
         .onChange(of: container.state.isRunning) { _, isRunning in

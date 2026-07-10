@@ -35,7 +35,9 @@ struct ImagesView: View {
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, 10)
@@ -69,7 +71,9 @@ struct ImagesView: View {
                     Task { await service.fetchImages() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                }.help("Refresh")
+                }
+                .help("Refresh")
+                .accessibilityLabel("Refresh images")
 
                 Button {
                     Task { await service.pruneImages() }
@@ -84,6 +88,7 @@ struct ImagesView: View {
                 }
                 .help("Prune \(unusedCount) unused image\(unusedCount == 1 ? "" : "s")")
                 .foregroundStyle(unusedCount > 0 ? .orange : .secondary)
+                .accessibilityLabel("Prune \(unusedCount) unused image\(unusedCount == 1 ? "" : "s")")
 
                 Button {
                     pullRef = ""
@@ -91,7 +96,9 @@ struct ImagesView: View {
                     showPullSheet = true
                 } label: {
                     Image(systemName: "arrow.down.circle")
-                }.help("Pull image")
+                }
+                .help("Pull image")
+                .accessibilityLabel("Pull image")
             }
         }
         .task { await service.fetchImages() }
@@ -243,6 +250,7 @@ struct ImageRowView: View {
             }
             .buttonStyle(.plain)
             .help("Run container from this image")
+            .accessibilityLabel("Run container from \(image.shortName)")
 
             Button {
                 showDeleteAlert = true
@@ -253,6 +261,7 @@ struct ImageRowView: View {
             }
             .buttonStyle(.plain)
             .help("Delete image")
+            .accessibilityLabel("Delete \(image.shortName)")
         }
         .padding(.vertical, 4)
         .alert("Delete \"\(image.ref)\"?", isPresented: $showDeleteAlert) {

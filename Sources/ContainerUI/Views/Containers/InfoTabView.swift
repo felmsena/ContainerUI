@@ -76,6 +76,7 @@ struct InfoTabView: View {
                             }
                             .buttonStyle(.plain)
                             .help("Copy \(key)")
+                            .accessibilityLabel(copiedKey == key ? "Copied" : "Copy \(key)")
                             .disabled(value == "—")
                         }
                     }
