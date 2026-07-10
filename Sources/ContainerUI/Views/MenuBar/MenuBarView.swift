@@ -13,14 +13,21 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack(spacing: 8) {
-                Image(systemName: "square.stack.3d.up.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.primary)
-                Text("ContainerUI")
-                    .font(.system(size: 13, weight: .semibold))
-                Spacer()
-                serviceStatusBadge
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.primary)
+                    Text("ContainerUI")
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    serviceStatusBadge
+                }
+                if !service.containers.isEmpty {
+                    Text("\(running.count) running · \(stopped.count) stopped")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
