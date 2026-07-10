@@ -4,24 +4,24 @@ extension ContainerService {
 
     func fetchImages() async {
         images = (try? await fetchJSONOrText(
-            command: "\(bin) image ls",
+            args: [bin, "image", "ls"],
             jsonParse: Self.parseImageListJSON,
             textParse: Self.parseImageList
         )) ?? []
     }
 
     func pullImage(_ ref: String) async throws {
-        try await shell("\(bin) image pull \(ref)")
+        try await shell([bin, "image", "pull", ref])
         await fetchImages()
     }
 
     func deleteImage(_ ref: String) async {
-        _ = try? await shell("\(bin) image rm \(ref)")
+        _ = try? await shell([bin, "image", "rm", ref])
         await fetchImages()
     }
 
     func pruneImages() async {
-        _ = try? await shell("\(bin) image prune")
+        _ = try? await shell([bin, "image", "prune"])
         await fetchImages()
     }
 

@@ -67,7 +67,7 @@ final class ContainerService: ObservableObject {
         defer { isLoading = false }
         do {
             let newContainers = try await fetchJSONOrText(
-                command: "\(bin) list --all",
+                args: [bin, "list", "--all"],
                 jsonParse: Self.parseContainerListJSON,
                 textParse: Self.parseContainerList
             )
@@ -107,7 +107,7 @@ final class ContainerService: ObservableObject {
         daemonState = .starting
         serviceError = nil
         do {
-            try await shell("\(bin) system start")
+            try await shell([bin, "system", "start"])
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             await fetchContainers()
         } catch {
@@ -120,7 +120,7 @@ final class ContainerService: ObservableObject {
         daemonState = .starting  // reuse "transitioning" state for the spinner
         serviceError = nil
         do {
-            try await shell("\(bin) system stop")
+            try await shell([bin, "system", "stop"])
             containers = []
             daemonState = .notRunning
         } catch {
@@ -131,30 +131,30 @@ final class ContainerService: ObservableObject {
     }
 
     func start(_ id: String) async {
-        _ = try? await shell("\(bin) start \(id)")
+        _ = try? await shell([bin, "start", id])
         await fetchContainers()
     }
 
     func stop(_ id: String) async {
-        _ = try? await shell("\(bin) stop \(id)")
+        _ = try? await shell([bin, "stop", id])
         await fetchContainers()
     }
 
     func restart(_ id: String) async {
-        _ = try? await shell("\(bin) stop \(id)")
-        _ = try? await shell("\(bin) start \(id)")
+        _ = try? await shell([bin, "stop", id])
+        _ = try? await shell([bin, "start", id])
         await fetchContainers()
     }
 
     func remove(_ id: String) async {
         // Stop first if running, then remove
-        _ = try? await shell("\(bin) stop \(id)")
-        _ = try? await shell("\(bin) rm \(id)")
+        _ = try? await shell([bin, "stop", id])
+        _ = try? await shell([bin, "rm", id])
         await fetchContainers()
     }
 
     func fetchLogs(for id: String, lines: Int = 200) async -> String {
-        (try? await shell("\(bin) logs --tail \(lines) \(id)")) ?? ""
+        (try? await shell([bin, "logs", "--tail", "\(lines)", id])) ?? ""
     }
 
     func openShell(for id: String) {
@@ -176,15 +176,15 @@ final class ContainerService: ObservableObject {
     }
 
     func runContainer(image: String, name: String?, ports: [(host: String, container: String)], volumes: [String] = [], memory: String, cpus: Int, env: [String]) async throws {
-        var parts = [bin, "run"]
-        if let name { parts += ["--name", name] }
-        parts += ["-m", memory]
-        if cpus > 1 { parts += ["--cpus", "\(cpus)"] }
-        for p in ports   { parts += ["-p", "\(p.host):\(p.container)"] }
-        for v in volumes { parts += ["-v", v] }
-        for e in env     { parts += ["-e", e] }
-        parts.append(image)
-        try await shell(parts.joined(separator: " "))
+        var args = [bin, "run"]
+        if let name { args += ["--name", name] }
+        args += ["-m", memory]
+        if cpus > 1 { args += ["--cpus", "\(cpus)"] }
+        for p in ports   { args += ["-p", "\(p.host):\(p.container)"] }
+        for v in volumes { args += ["-v", v] }
+        for e in env     { args += ["-e", e] }
+        args.append(image)
+        try await shell(args)
         await fetchContainers()
     }
 
@@ -211,16 +211,19 @@ final class ContainerService: ObservableObject {
 
     // MARK: – Shell
 
+    /// Runs `args[0]` with `args.dropFirst()` as arguments directly via
+    /// `Process` — no `/bin/sh -c`, so metacharacters in any argument
+    /// (spaces, `;`, `$(...)`, …) are inert rather than shell-interpreted.
     @discardableResult
-    func shell(_ command: String) async throws -> String {
+    func shell(_ args: [String]) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 let outPipe = Pipe()
                 let errPipe = Pipe()
 
-                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-                process.arguments = ["-c", command]
+                process.executableURL = URL(fileURLWithPath: args[0])
+                process.arguments = Array(args.dropFirst())
                 process.standardOutput = outPipe
                 process.standardError = errPipe
 
@@ -252,20 +255,20 @@ final class ContainerService: ObservableObject {
         }
     }
 
-    /// Runs `command --format json` and decodes it; falls back to the plain
-    /// text form (and its fixed-width parser) if the JSON attempt fails to
-    /// run or to decode — e.g. an older `container` CLI without `--format`.
+    /// Runs `args + ["--format", "json"]` and decodes it; falls back to the
+    /// plain-args form (and its fixed-width parser) if the JSON attempt fails
+    /// to run or to decode — e.g. an older `container` CLI without `--format`.
     func fetchJSONOrText<T>(
-        command: String,
+        args: [String],
         jsonParse: (Data) -> [T]?,
         textParse: (String) -> [T]
     ) async throws -> [T] {
-        if let jsonOutput = try? await shell("\(command) --format json"),
+        if let jsonOutput = try? await shell(args + ["--format", "json"]),
            let data = jsonOutput.data(using: .utf8),
            let parsed = jsonParse(data) {
             return parsed
         }
-        let output = try await shell(command)
+        let output = try await shell(args)
         return textParse(output)
     }
 

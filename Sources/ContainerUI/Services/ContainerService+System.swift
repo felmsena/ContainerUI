@@ -3,14 +3,14 @@ import Foundation
 extension ContainerService {
 
     func fetchSystemInfo() async {
-        async let statusJSONOut = try? shell("\(bin) system status --format json")
+        async let statusJSONOut = try? shell([bin, "system", "status", "--format", "json"])
         async let dfRows        = try? fetchJSONOrText(
-            command: "\(bin) system df",
+            args: [bin, "system", "df"],
             jsonParse: Self.parseSystemDfJSON,
             textParse: Self.parseSystemDf
         )
         async let versionRowsOut = try? fetchJSONOrText(
-            command: "\(bin) system version",
+            args: [bin, "system", "version"],
             jsonParse: Self.parseVersionRowsJSON,
             textParse: Self.parseVersionRows
         )
@@ -20,7 +20,7 @@ extension ContainerService {
         if let s, let data = s.data(using: .utf8), let parsed = Self.parseSystemStatusJSON(data) {
             systemStatus = parsed
         } else {
-            let textOut = (try? await shell("\(bin) system status")) ?? ""
+            let textOut = (try? await shell([bin, "system", "status"])) ?? ""
             systemStatus = Self.parseSystemStatus(textOut)
         }
         systemDf    = d ?? []
@@ -28,17 +28,17 @@ extension ContainerService {
     }
 
     func fetchSystemLogs() async -> String {
-        (try? await shell("\(bin) system logs")) ?? ""
+        (try? await shell([bin, "system", "logs"])) ?? ""
     }
 
     func startService() async {
-        _ = try? await shell("\(bin) system start")
+        _ = try? await shell([bin, "system", "start"])
         await fetchSystemInfo()
         await fetchContainers()
     }
 
     func stopService() async {
-        _ = try? await shell("\(bin) system stop")
+        _ = try? await shell([bin, "system", "stop"])
         await fetchSystemInfo()
         await fetchContainers()
     }

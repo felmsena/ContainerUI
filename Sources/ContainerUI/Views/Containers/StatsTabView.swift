@@ -83,7 +83,7 @@ struct StatsTabView: View {
         isLoading = true
         defer { isLoading = false }
 
-        guard let output = try? await service.shell("\(containerBin) stats --no-stream \(container.id)") else { return }
+        guard let output = try? await service.shell([containerBin, "stats", "--no-stream", container.id]) else { return }
         stats = parseStats(output)
     }
 

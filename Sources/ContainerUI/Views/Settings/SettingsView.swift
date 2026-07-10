@@ -68,14 +68,20 @@ struct SettingsView: View {
                         HStack(spacing: 8) {
                             Button("Create .local domain") {
                                 Task {
-                                    _ = try? await service.shell("osascript -e 'do shell script \"\(containerBin) system dns create local\" with administrator privileges'")
+                                    _ = try? await service.shell([
+                                        "/usr/bin/osascript", "-e",
+                                        "do shell script \"\(containerBin) system dns create local\" with administrator privileges"
+                                    ])
                                 }
                             }
                             .buttonStyle(.bordered)
 
                             Button("Remove .local domain") {
                                 Task {
-                                    _ = try? await service.shell("osascript -e 'do shell script \"\(containerBin) system dns delete local\" with administrator privileges'")
+                                    _ = try? await service.shell([
+                                        "/usr/bin/osascript", "-e",
+                                        "do shell script \"\(containerBin) system dns delete local\" with administrator privileges"
+                                    ])
                                 }
                             }
                             .buttonStyle(.bordered)
