@@ -31,3 +31,11 @@ enum ImageReference {
         return (name, tag.isEmpty ? "latest" : tag)
     }
 }
+
+/// Exact match between a container's image reference and a known image,
+/// after normalizing registry/tag — unlike `hasPrefix`, "postgres" never
+/// matches "postgres-custom".
+func imageMatches(containerImage: String, image: ImageInfo) -> Bool {
+    let (name, tag) = ImageReference.split(containerImage)
+    return name == image.name && tag == image.tag
+}

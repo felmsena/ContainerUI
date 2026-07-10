@@ -17,7 +17,7 @@ struct ImageDetailView: View {
     }
 
     private var usingContainers: [ContainerInfo] {
-        service.containers.filter { $0.image.hasPrefix(image.name) }
+        service.containers.filter { imageMatches(containerImage: $0.image, image: image) }
     }
 
     private var runningContainers: [ContainerInfo] { usingContainers.filter { $0.state.isRunning } }

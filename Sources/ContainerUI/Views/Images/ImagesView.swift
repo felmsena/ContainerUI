@@ -19,7 +19,7 @@ struct ImagesView: View {
 
     private var unusedCount: Int {
         service.images.filter { img in
-            !service.containers.contains { $0.image.hasPrefix(img.name) }
+            !service.containers.contains { imageMatches(containerImage: $0.image, image: img) }
         }.count
     }
 
@@ -165,7 +165,7 @@ struct ImageRowView: View {
     private enum UsageState { case running, stopped, unused }
 
     private var usageState: UsageState {
-        let matching = service.containers.filter { $0.image.hasPrefix(image.name) }
+        let matching = service.containers.filter { imageMatches(containerImage: $0.image, image: image) }
         if matching.isEmpty { return .unused }
         return matching.contains { $0.state.isRunning } ? .running : .stopped
     }

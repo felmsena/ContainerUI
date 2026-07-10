@@ -59,4 +59,31 @@ final class UtilityTests: XCTestCase {
         XCTAssertEqual(name, "localhost:5000/myapp")
         XCTAssertEqual(tag,  "v1")
     }
+
+    // MARK: – imageMatches
+
+    func testImageMatches_exactRefMatch() {
+        let image = ImageInfo(name: "postgres", tag: "latest", digest: "")
+        XCTAssertTrue(imageMatches(containerImage: "docker.io/library/postgres:latest", image: image))
+    }
+
+    func testImageMatches_implicitLatestTag() {
+        let image = ImageInfo(name: "postgres", tag: "latest", digest: "")
+        XCTAssertTrue(imageMatches(containerImage: "docker.io/library/postgres", image: image))
+    }
+
+    func testImageMatches_falsePrefix_doesNotMatch() {
+        let image = ImageInfo(name: "postgres", tag: "latest", digest: "")
+        XCTAssertFalse(imageMatches(containerImage: "docker.io/library/postgres-custom:1.0", image: image))
+    }
+
+    func testImageMatches_differentTag_doesNotMatch() {
+        let image = ImageInfo(name: "postgres", tag: "16", digest: "")
+        XCTAssertFalse(imageMatches(containerImage: "docker.io/library/postgres:latest", image: image))
+    }
+
+    func testImageMatches_thirdPartyRegistry() {
+        let image = ImageInfo(name: "ghcr.io/apple/containerization/vminit", tag: "0.33.3", digest: "")
+        XCTAssertTrue(imageMatches(containerImage: "ghcr.io/apple/containerization/vminit:0.33.3", image: image))
+    }
 }
