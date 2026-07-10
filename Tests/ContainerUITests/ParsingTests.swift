@@ -452,4 +452,64 @@ final class ParsingTests: XCTestCase {
     func testParseContainerDetail_malformed_returnsNil() {
         XCTAssertNil(ContainerService.parseContainerDetail(Data("not json".utf8)))
     }
+
+    // MARK: – parseRawStats
+    //
+    // Fixture matches real `container stats --format json --no-stream` output.
+
+    private let statsJSON = """
+    [{"blockReadBytes":1744896,"blockWriteBytes":0,"cpuUsageUsec":13215099,"id":"statstest",
+    "memoryLimitBytes":1073741824,"memoryUsageBytes":1998848,"networkRxBytes":30278,
+    "networkTxBytes":602,"numProcesses":1}]
+    """
+
+    func testParseRawStats_mapsAllFields() {
+        let result = ContainerService.parseRawStats(Data(statsJSON.utf8))
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.cpuUsageUsec, 13215099)
+        XCTAssertEqual(result?.memoryUsageBytes, 1998848)
+        XCTAssertEqual(result?.memoryLimitBytes, 1073741824)
+        XCTAssertEqual(result?.networkRxBytes, 30278)
+        XCTAssertEqual(result?.networkTxBytes, 602)
+    }
+
+    func testParseRawStats_emptyArray_returnsNil() {
+        XCTAssertNil(ContainerService.parseRawStats(Data("[]".utf8)))
+    }
+
+    func testParseRawStats_malformed_returnsNil() {
+        XCTAssertNil(ContainerService.parseRawStats(Data("not json".utf8)))
+    }
+
+    // MARK: – cpuPercent
+
+    func testCpuPercent_oneCoreFullyBusy() {
+        // 2 wall-clock seconds, 2,000,000 usec of CPU time used -> ~100%.
+        let t0 = Date()
+        let t1 = t0.addingTimeInterval(2)
+        let pct = ContainerService.cpuPercent(currentUsec: 2_000_000, previousUsec: 0, currentTime: t1, previousTime: t0)
+        XCTAssertEqual(pct, 100, accuracy: 0.01)
+    }
+
+    func testCpuPercent_multiCoreCanExceed100() {
+        let t0 = Date()
+        let t1 = t0.addingTimeInterval(1)
+        // 1 wall-clock second, 2,000,000 usec of CPU time -> ~200% (2 cores busy).
+        let pct = ContainerService.cpuPercent(currentUsec: 2_000_000, previousUsec: 0, currentTime: t1, previousTime: t0)
+        XCTAssertEqual(pct, 200, accuracy: 0.01)
+    }
+
+    func testCpuPercent_counterReset_clampsToZero() {
+        let t0 = Date()
+        let t1 = t0.addingTimeInterval(2)
+        // Simulates a container restart: cumulative usec resets lower than the previous sample.
+        let pct = ContainerService.cpuPercent(currentUsec: 100, previousUsec: 5_000_000, currentTime: t1, previousTime: t0)
+        XCTAssertEqual(pct, 0)
+    }
+
+    func testCpuPercent_zeroElapsedTime_returnsZero() {
+        let t0 = Date()
+        let pct = ContainerService.cpuPercent(currentUsec: 1_000_000, previousUsec: 0, currentTime: t0, previousTime: t0)
+        XCTAssertEqual(pct, 0)
+    }
 }

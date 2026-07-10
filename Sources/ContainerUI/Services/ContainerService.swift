@@ -31,6 +31,11 @@ final class ContainerService: ObservableObject {
     @Published var systemDf: [SystemDfRow] = []
     @Published var versionRows: [VersionRow] = []
 
+    // Stats (per-container id)
+    @Published var latestStats: [String: ContainerStats] = [:]
+    @Published var statsHistory: [String: [ContainerStatsSample]] = [:]
+    var lastRawStats: [String: RawStatsSample] = [:]
+
     var bin: String { containerBin }
 
     private var refreshTask: Task<Void, Never>?

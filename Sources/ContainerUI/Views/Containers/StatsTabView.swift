@@ -1,45 +1,71 @@
 import SwiftUI
+import Charts
 
 struct StatsTabView: View {
     let container: ContainerInfo
     @EnvironmentObject var service: ContainerService
-    @State private var stats: ContainerStats?
-    @State private var isLoading = false
-    @State private var refreshTask: Task<Void, Never>?
+
+    private var stats: ContainerStats? { service.latestStats[container.id] }
+    private var history: [ContainerStatsSample] { service.statsHistory[container.id] ?? [] }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                if let stats = stats {
+                if let stats {
                     LazyVStack(spacing: 12) {
-                        StatCard(label: "CPU Usage", value: stats.cpu, icon: "cpu")
-                        StatCard(label: "Memory", value: "\(stats.memUsage) / \(stats.memLimit)", icon: "memorychip")
-                        StatCard(label: "Net In", value: stats.netIn, icon: "arrow.down.circle")
-                        StatCard(label: "Net Out", value: stats.netOut, icon: "arrow.up.circle")
+                        StatCard(label: "CPU Usage", value: String(format: "%.1f%%", stats.cpuPercent), icon: "cpu")
+                        StatCard(label: "Memory", value: "\(formatBytes(stats.memoryUsageBytes)) / \(formatBytes(stats.memoryLimitBytes))", icon: "memorychip")
+                        StatCard(label: "Net In", value: formatBytes(stats.networkRxBytes), icon: "arrow.down.circle")
+                        StatCard(label: "Net Out", value: formatBytes(stats.networkTxBytes), icon: "arrow.up.circle")
                     }
-                } else if isLoading {
+
+                    if !history.isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("CPU % (last 2 min)")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                Chart(history) { sample in
+                                    LineMark(
+                                        x: .value("Time", sample.timestamp),
+                                        y: .value("CPU %", sample.cpuPercent)
+                                    )
+                                    .foregroundStyle(.blue)
+                                    .interpolationMethod(.catmullRom)
+                                }
+                                .frame(height: 90)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Memory (last 2 min)")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                Chart(history) { sample in
+                                    AreaMark(
+                                        x: .value("Time", sample.timestamp),
+                                        y: .value("Memory", sample.memoryUsageBytes)
+                                    )
+                                    .foregroundStyle(.green.opacity(0.25))
+                                    LineMark(
+                                        x: .value("Time", sample.timestamp),
+                                        y: .value("Memory", sample.memoryUsageBytes)
+                                    )
+                                    .foregroundStyle(.green)
+                                }
+                                .frame(height: 90)
+                            }
+                        }
+                    }
+                } else if container.state.isRunning {
                     ProgressView("Loading stats…")
                         .padding(.top, 40)
-                } else if !container.state.isRunning {
+                } else {
                     VStack(spacing: 8) {
                         Image(systemName: "chart.bar.xaxis")
                             .font(.system(size: 36))
                             .foregroundStyle(.quaternary)
                         Text("Container is not running")
                             .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.circle")
-                            .font(.system(size: 36))
-                            .foregroundStyle(.quaternary)
-                        Text("Stats unavailable")
-                            .foregroundStyle(.secondary)
-                        Text("Run `container stats \(container.id)` in Terminal")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
@@ -60,48 +86,13 @@ struct StatsTabView: View {
             }
             .padding(12)
         }
-        .task {
+        .task(id: container.id) {
             guard container.state.isRunning else { return }
-            await startLiveStats()
-        }
-        .onDisappear {
-            refreshTask?.cancel()
-        }
-    }
-
-    func startLiveStats() async {
-        refreshTask?.cancel()
-        refreshTask = Task {
-            while !Task.isCancelled && container.state.isRunning {
-                await loadStats()
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            while !Task.isCancelled {
+                await service.pollStats(for: container.id)
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
-    }
-
-    func loadStats() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        guard let output = try? await service.shell([containerBin, "stats", "--no-stream", container.id]) else { return }
-        stats = parseStats(output)
-    }
-
-    func parseStats(_ output: String) -> ContainerStats? {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return nil }
-
-        let data = lines[1]
-        let parts = data.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard parts.count >= 3 else { return nil }
-
-        return ContainerStats(
-            cpu: parts.count > 1 ? parts[1] : "—",
-            memUsage: parts.count > 2 ? parts[2] : "—",
-            memLimit: parts.count > 4 ? parts[4] : container.memory,
-            netIn: parts.count > 5 ? parts[5] : "—",
-            netOut: parts.count > 7 ? parts[7] : "—"
-        )
     }
 }
 
