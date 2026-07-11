@@ -32,6 +32,8 @@ jobs:
           cp Info.plist ContainerUI.app/Contents/
           cp Resources/AppIcon.icns ContainerUI.app/Contents/Resources/
           cp -R .build/release/ContainerUI_ContainerUI.bundle ContainerUI.app/Contents/Resources/
+          plutil -replace CFBundleShortVersionString -string "${GITHUB_REF_NAME#v}" ContainerUI.app/Contents/Info.plist
+          plutil -replace CFBundleVersion -string "${GITHUB_RUN_NUMBER}" ContainerUI.app/Contents/Info.plist
           codesign --force --deep --sign - ContainerUI.app
 
       - name: Zip app bundle
