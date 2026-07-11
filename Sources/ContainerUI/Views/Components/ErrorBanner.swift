@@ -1,18 +1,27 @@
 import SwiftUI
 
-/// Dismissible error banner used consistently wherever `serviceError` or a
-/// local error message needs to be surfaced instead of failing silently.
+/// Dismissible banner used consistently wherever `serviceError` or a local
+/// error/info message needs to be surfaced instead of failing silently.
 struct ErrorBanner: View {
+    enum Style {
+        case warning
+        case info
+
+        var tint: Color { self == .warning ? .orange : .blue }
+        var icon: String { self == .warning ? "exclamationmark.triangle.fill" : "arrow.down.circle.fill" }
+    }
+
     let message: String
+    var style: Style = .warning
     var actionLabel: String? = nil
     var action: (() -> Void)? = nil
     let onDismiss: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: style.icon)
                 .font(.system(size: 12))
-                .foregroundStyle(.orange)
+                .foregroundStyle(style.tint)
                 .padding(.top, 1)
 
             Text(message)
@@ -40,10 +49,10 @@ struct ErrorBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(Color.orange.opacity(0.12))
+        .background(style.tint.opacity(0.12))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color.orange.opacity(0.3), lineWidth: 0.5)
+                .strokeBorder(style.tint.opacity(0.3), lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
