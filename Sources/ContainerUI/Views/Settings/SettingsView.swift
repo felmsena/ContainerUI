@@ -3,6 +3,11 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("refreshInterval") private var refreshInterval = 5
     @AppStorage("defaultBrowserPort") private var defaultPort = "9000"
+    @AppStorage("notifyContainerStopped") private var notifyContainerStopped = true
+    @AppStorage("notifyBuildFinished") private var notifyBuildFinished = true
+    @AppStorage("notifyPullFinished") private var notifyPullFinished = false
+    @AppStorage("autoCheckForUpdates") private var autoCheckForUpdates = true
+    @State private var isCheckingForUpdates = false
     @EnvironmentObject var service: ContainerService
 
     @State private var registryLogins: [RegistryLogin] = []
@@ -62,6 +67,53 @@ struct SettingsView: View {
                             .frame(width: 70)
                             .font(.system(size: 12, design: .monospaced))
                     }
+                }
+
+                SectionCard(title: "Updates") {
+                    Toggle("Check for updates automatically", isOn: $autoCheckForUpdates)
+                        .font(.system(size: 13))
+
+                    Divider()
+
+                    HStack {
+                        if let update = service.availableUpdate {
+                            Text("\(update.tagName) available")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("You're up to date")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            Task {
+                                isCheckingForUpdates = true
+                                await service.checkForUpdates(force: true)
+                                isCheckingForUpdates = false
+                            }
+                        } label: {
+                            if isCheckingForUpdates {
+                                ProgressView().scaleEffect(0.6)
+                            } else {
+                                Text("Check Now")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isCheckingForUpdates)
+                    }
+                }
+
+                SectionCard(title: "Notifications") {
+                    Toggle("Container stopped", isOn: $notifyContainerStopped)
+                        .font(.system(size: 13))
+                    Divider()
+                    Toggle("Build finished", isOn: $notifyBuildFinished)
+                        .font(.system(size: 13))
+                    Divider()
+                    Toggle("Image pull finished", isOn: $notifyPullFinished)
+                        .font(.system(size: 13))
                 }
 
                 SectionCard(title: "DNS") {

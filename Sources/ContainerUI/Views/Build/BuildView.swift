@@ -187,6 +187,7 @@ struct BuildView: View {
             for try await chunk in task.output {
                 logText += chunk
             }
+            service.notifyBuildFinished(tag: trimmedTag, success: true)
             await service.fetchImages()
             if let built = service.images.first(where: { imageMatches(containerImage: trimmedTag, image: $0) }) {
                 selectedImage = built
@@ -194,6 +195,7 @@ struct BuildView: View {
             }
         } catch {
             self.error = error.localizedDescription
+            service.notifyBuildFinished(tag: trimmedTag, success: false)
         }
 
         isBuilding = false

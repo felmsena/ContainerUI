@@ -11,7 +11,13 @@ extension ContainerService {
     }
 
     func pullImage(_ ref: String) async throws {
-        try await shell([bin, "image", "pull", ref])
+        do {
+            try await shell([bin, "image", "pull", ref])
+        } catch {
+            notifyPullFinished(ref: ref, success: false)
+            throw error
+        }
+        notifyPullFinished(ref: ref, success: true)
         await fetchImages()
     }
 

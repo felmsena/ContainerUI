@@ -39,17 +39,25 @@ final class ContainerService: ObservableObject {
     @Published var statsHistory: [String: [ContainerStatsSample]] = [:]
     var lastRawStats: [String: RawStatsSample] = [:]
 
+    // Updates
+    @Published var availableUpdate: GitHubReleaseInfo?
+
     var bin: String { containerBin }
 
     private var refreshTask: Task<Void, Never>?
+    private var updateCheckTask: Task<Void, Never>?
     private var previousRunningIds: Set<String> = []
     private var hasInitialFetch = false
 
     init() {
         requestNotificationPermission()
         startAutoRefresh()
+        startUpdateCheckLoop()
     }
-    deinit { refreshTask?.cancel() }
+    deinit {
+        refreshTask?.cancel()
+        updateCheckTask?.cancel()
+    }
 
     func startAutoRefresh() {
         refreshTask?.cancel()
@@ -239,6 +247,33 @@ final class ContainerService: ObservableObject {
         await fetchContainers()
     }
 
+    // MARK: – Updates
+
+    private static let updateCheckInterval: UInt64 = 24 * 60 * 60 * 1_000_000_000
+
+    private func startUpdateCheckLoop() {
+        updateCheckTask?.cancel()
+        updateCheckTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.checkForUpdates()
+                try? await Task.sleep(nanoseconds: Self.updateCheckInterval)
+            }
+        }
+    }
+
+    /// Checks the latest GitHub release against the running app's version.
+    /// `force: true` (the Settings "Check Now" button) bypasses the
+    /// "check automatically" preference; the background loop does not.
+    func checkForUpdates(force: Bool = false) async {
+        guard force || UserDefaults.standard.object(forKey: "autoCheckForUpdates") as? Bool ?? true else { return }
+        guard let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
+        guard let release = try? await UpdateChecker.fetchLatestRelease(),
+              !release.draft, !release.prerelease,
+              UpdateChecker.isNewer(release.tagName, than: local)
+        else { return }
+        availableUpdate = release
+    }
+
     // MARK: – Notifications
 
     private var hasBundle: Bool { Bundle.main.bundleIdentifier != nil }
@@ -249,13 +284,29 @@ final class ContainerService: ObservableObject {
     }
 
     private func notifyContainerStopped(_ id: String) {
-        guard hasBundle else { return }
+        guard hasBundle, UserDefaults.standard.object(forKey: "notifyContainerStopped") as? Bool ?? true else { return }
+        send(title: String(localized: "Container stopped"), body: String(localized: "\"\(id)\" is no longer running"), identifier: "stopped-\(id)")
+    }
+
+    func notifyBuildFinished(tag: String, success: Bool) {
+        guard hasBundle, UserDefaults.standard.object(forKey: "notifyBuildFinished") as? Bool ?? true else { return }
+        let title = success ? String(localized: "Build finished") : String(localized: "Build failed")
+        send(title: title, body: tag, identifier: "build-\(tag)")
+    }
+
+    func notifyPullFinished(ref: String, success: Bool) {
+        guard hasBundle, UserDefaults.standard.object(forKey: "notifyPullFinished") as? Bool ?? false else { return }
+        let title = success ? String(localized: "Pull finished") : String(localized: "Pull failed")
+        send(title: title, body: ref, identifier: "pull-\(ref)")
+    }
+
+    private func send(title: String, body: String, identifier: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Container stopped"
-        content.body = "\"\(id)\" is no longer running"
+        content.title = title
+        content.body = body
         content.sound = .default
         let req = UNNotificationRequest(
-            identifier: "stopped-\(id)-\(Int(Date().timeIntervalSince1970))",
+            identifier: "\(identifier)-\(Int(Date().timeIntervalSince1970))",
             content: content, trigger: nil)
         UNUserNotificationCenter.current().add(req)
     }

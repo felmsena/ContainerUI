@@ -133,6 +133,25 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(es("No registry logins"), "No hay inicios de sesión de registro")
     }
 
+    // MARK: - Notification preferences (Settings) and update banner
+
+    func testNotificationPreferences() {
+        XCTAssertEqual(es("Notifications"), "Notificaciones")
+        XCTAssertEqual(es("Container stopped"), "Contenedor detenido")
+        XCTAssertEqual(es("Build finished"), "Compilación terminada")
+        XCTAssertEqual(es("Build failed"), "Compilación fallida")
+        XCTAssertEqual(es("Image pull finished"), "Descarga de imagen terminada")
+        XCTAssertEqual(es("\"%@\" is no longer running"), "\"%@\" ya no está en ejecución")
+    }
+
+    func testUpdateChecker() {
+        XCTAssertEqual(es("Updates"), "Actualizaciones")
+        XCTAssertEqual(es("Check for updates automatically"), "Buscar actualizaciones automáticamente")
+        XCTAssertEqual(es("Check Now"), "Buscar ahora")
+        XCTAssertEqual(es("You're up to date"), "Estás al día")
+        XCTAssertEqual(es("ContainerUI %@ is available"), "ContainerUI %@ está disponible")
+    }
+
     // MARK: - Confirmation dialogs
 
     func testDestructiveAlerts() {
