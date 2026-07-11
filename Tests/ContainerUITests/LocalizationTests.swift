@@ -133,6 +133,21 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(es("No registry logins"), "No hay inicios de sesión de registro")
     }
 
+    // MARK: - Groups (compose-lite)
+
+    func testGroupsSection() {
+        XCTAssertEqual(es("Groups"), "Grupos")
+        XCTAssertEqual(es("No groups"), "No hay grupos")
+        XCTAssertEqual(es("New Group…"), "Nuevo grupo…")
+        XCTAssertEqual(es("Open…"), "Abrir…")
+        XCTAssertEqual(es("Select a group"), "Seleccioná un grupo")
+        XCTAssertEqual(es("Up"), "Levantar")
+        XCTAssertEqual(es("Down"), "Bajar")
+        XCTAssertEqual(es("Pending"), "Pendiente")
+        XCTAssertEqual(es("Starting…"), "Iniciando…")
+        XCTAssertEqual(es("Stopping…"), "Deteniendo…")
+    }
+
     // MARK: - Notification preferences (Settings) and update banner
 
     func testNotificationPreferences() {

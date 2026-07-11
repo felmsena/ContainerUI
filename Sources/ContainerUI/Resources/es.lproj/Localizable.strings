@@ -4,6 +4,7 @@
 "Volumes" = "Volúmenes";
 "Registry" = "Registro";
 "Build" = "Compilar";
+"Groups" = "Grupos";
 "Stats" = "Estadísticas";
 "Logs" = "Registros";
 "Settings" = "Ajustes";
@@ -333,3 +334,18 @@
 "Command preview" = "Vista previa del comando";
 "Running…" = "Ejecutando…";
 "Name (optional)" = "Nombre (opcional)";
+
+/* Groups (compose-lite) */
+"No groups" = "No hay grupos";
+"Create a compose-lite YAML file to run several containers together." = "Creá un archivo YAML compose-lite para levantar varios contenedores juntos.";
+"New Group…" = "Nuevo grupo…";
+"Open…" = "Abrir…";
+"Remove from list" = "Quitar de la lista";
+"Select a group" = "Seleccioná un grupo";
+"YAML" = "YAML";
+"Services" = "Servicios";
+"Up" = "Levantar";
+"Down" = "Bajar";
+"Pending" = "Pendiente";
+"Starting…" = "Iniciando…";
+"Stopping…" = "Deteniendo…";

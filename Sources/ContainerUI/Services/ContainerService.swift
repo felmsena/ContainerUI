@@ -166,7 +166,7 @@ final class ContainerService: ObservableObject {
         case .images:     await fetchImages()
         case .volumes:    await fetchVolumes()
         case .stats, .logs: await fetchSystemInfo()
-        case .registry, .build, .settings: break
+        case .registry, .build, .groups, .settings: break
         }
     }
 

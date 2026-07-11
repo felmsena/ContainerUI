@@ -6,6 +6,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
     case volumes    = "Volumes"
     case registry   = "Registry"
     case build      = "Build"
+    case groups     = "Groups"
     case stats      = "Stats"
     case logs       = "Logs"
     case settings   = "Settings"
@@ -17,6 +18,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .volumes:    return "externaldrive"
         case .registry:   return "storefront"
         case .build:      return "hammer"
+        case .groups:     return "rectangle.3.group"
         case .stats:      return "chart.bar"
         case .logs:       return "terminal"
         case .settings:   return "gearshape"
@@ -30,6 +32,7 @@ struct ContentView: View {
     @State private var selectedImage: ImageInfo?
     @State private var selectedRegistryEntry: RegistryEntry?
     @State private var selectedVolume: VolumeInfo?
+    @State private var selectedGroup: URL?
 
     var body: some View {
         NavigationSplitView {
@@ -41,6 +44,7 @@ struct ContentView: View {
             case .volumes:    VolumesView(selected: $selectedVolume)
             case .registry:   RegistryView(selectedEntry: $selectedRegistryEntry)
             case .build:      BuildView(sidebarItem: $service.sidebarItem, selectedImage: $selectedImage)
+            case .groups:     GroupsView(selected: $selectedGroup)
             case .stats:      SystemStatsView()
             case .logs:       SystemLogsView()
             case .settings:   SettingsView()
@@ -72,6 +76,12 @@ struct ContentView: View {
                         .id(volume.id)
                 } else {
                     EmptyStateView(icon: "externaldrive", title: "Select a volume")
+                }
+            case .groups:
+                if let group = selectedGroup {
+                    GroupDetailView(fileURL: group).id(group)
+                } else {
+                    EmptyStateView(icon: "rectangle.3.group", title: "Select a group")
                 }
             default:
                 EmptyStateView(icon: service.sidebarItem.icon, title: LocalizedStringKey(service.sidebarItem.rawValue))
