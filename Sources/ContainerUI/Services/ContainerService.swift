@@ -42,6 +42,9 @@ final class ContainerService: ObservableObject {
     // Updates
     @Published var availableUpdate: GitHubReleaseInfo?
 
+    // Compose-lite (per compose-container-name, e.g. "<group>-<service>")
+    @Published var composeState: [String: ComposeServiceState] = [:]
+
     var bin: String { containerBin }
 
     private var refreshTask: Task<Void, Never>?

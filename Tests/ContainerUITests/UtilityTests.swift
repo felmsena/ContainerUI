@@ -142,4 +142,20 @@ final class UtilityTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         XCTAssertNil(ContainerService.detectBuildFile(in: dir))
     }
+
+    // MARK: – Compose-lite naming
+
+    func testComposeNetworkName_isNamespacedByGroup() {
+        XCTAssertEqual(ContainerService.composeNetworkName(group: "myapp"), "compose-myapp")
+    }
+
+    func testComposeContainerName_isNamespacedByGroupAndService() {
+        XCTAssertEqual(ContainerService.composeContainerName(group: "myapp", service: "db"), "myapp-db")
+    }
+
+    func testComposeContainerName_differentGroupsDoNotCollide() {
+        let a = ContainerService.composeContainerName(group: "staging", service: "db")
+        let b = ContainerService.composeContainerName(group: "prod", service: "db")
+        XCTAssertNotEqual(a, b)
+    }
 }
