@@ -281,8 +281,11 @@ final class ContainerService: ObservableObject {
 
     private var hasBundle: Bool { Bundle.main.bundleIdentifier != nil }
 
+    private let notificationClickHandler = NotificationClickHandler()
+
     private func requestNotificationPermission() {
         guard hasBundle else { return }
+        UNUserNotificationCenter.current().delegate = notificationClickHandler
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
@@ -512,5 +515,24 @@ final class ContainerService: ObservableObject {
                 started: entry.status.startedDate ?? ""
             )
         }
+    }
+}
+
+/// `UNUserNotificationCenterDelegate` requires `NSObject` conformance,
+/// which `ContainerService` (an `ObservableObject`) deliberately doesn't
+/// have — kept as its own tiny object instead of widening
+/// `ContainerService`'s class hierarchy for one callback.
+final class NotificationClickHandler: NSObject, UNUserNotificationCenterDelegate {
+    /// Clicking any notification (stopped, build finished, pull finished)
+    /// brings the app to the front instead of just dismissing it.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        Task { @MainActor in
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        completionHandler()
     }
 }
