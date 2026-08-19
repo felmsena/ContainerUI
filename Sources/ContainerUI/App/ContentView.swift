@@ -36,6 +36,31 @@ struct ContentView: View {
     @State private var selectedGroup: URL?
 
     var body: some View {
+        VStack(spacing: 0) {
+        if service.serviceError != nil || service.availableUpdate != nil {
+            VStack(spacing: 8) {
+                if let error = service.serviceError {
+                    ErrorBanner(message: error) {
+                        service.serviceError = nil
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                if let release = service.availableUpdate {
+                    ErrorBanner(
+                        message: String(localized: "ContainerUI \(release.tagName) is available"),
+                        style: .info,
+                        actionLabel: String(localized: "Download"),
+                        action: { NSWorkspace.shared.open(URL(string: release.htmlUrl)!) }
+                    ) {
+                        service.availableUpdate = nil
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+
         NavigationSplitView {
             SidebarView(selected: $service.sidebarItem)
         } content: {
@@ -112,28 +137,6 @@ struct ContentView: View {
             RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
                 .environmentObject(service)
         }
-        .overlay(alignment: .top) {
-            VStack(spacing: 8) {
-                if let error = service.serviceError {
-                    ErrorBanner(message: error) {
-                        service.serviceError = nil
-                    }
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                if let release = service.availableUpdate {
-                    ErrorBanner(
-                        message: String(localized: "ContainerUI \(release.tagName) is available"),
-                        style: .info,
-                        actionLabel: String(localized: "Download"),
-                        action: { NSWorkspace.shared.open(URL(string: release.htmlUrl)!) }
-                    ) {
-                        service.availableUpdate = nil
-                    }
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
         }
         .animation(.easeOut(duration: 0.2), value: service.serviceError)
         .animation(.easeOut(duration: 0.2), value: service.availableUpdate)
