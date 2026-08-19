@@ -76,6 +76,7 @@ struct ContainerListView: View {
                 }
                 .background(Theme.bg)
                 .focusable()
+                .focusEffectDisabled()
                 .focused($isListFocused)
                 .onKeyPress(.space) {
                     guard let selected else { return .ignored }
