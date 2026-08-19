@@ -351,36 +351,38 @@ struct RegistryCard: View {
 
             Group {
                 if isLoadingHub && entry.description.isEmpty {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.border)
-                        .frame(height: 10)
-                        .padding(.bottom, 4)
+                    VStack(alignment: .leading, spacing: 5) {
+                        RoundedRectangle(cornerRadius: 4).fill(Theme.border).frame(height: 8)
+                        RoundedRectangle(cornerRadius: 4).fill(Theme.border).frame(width: 130, height: 8)
+                    }
                 } else {
                     Text(entry.description.isEmpty ? entry.fullRef : entry.description)
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.text2)
                         .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(height: 28, alignment: .top)
             .padding(.horizontal, 12).padding(.bottom, 8)
 
-            if entry.pullCount > 0 {
-                HStack(spacing: 8) {
-                    Label(formatCount(entry.pullCount), systemImage: "arrow.down.circle")
-                        .font(.system(size: 10)).foregroundStyle(Theme.text3)
-                    if entry.starCount > 0 {
-                        Label("\(entry.starCount)", systemImage: "star.fill")
+            Group {
+                if entry.pullCount > 0 {
+                    HStack(spacing: 8) {
+                        Label(formatCount(entry.pullCount), systemImage: "arrow.down.circle")
                             .font(.system(size: 10)).foregroundStyle(Theme.text3)
+                        if entry.starCount > 0 {
+                            Label("\(entry.starCount)", systemImage: "star.fill")
+                                .font(.system(size: 10)).foregroundStyle(Theme.text3)
+                        }
                     }
+                } else if isLoadingHub {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Theme.border)
+                        .frame(width: 60, height: 8)
                 }
-                .padding(.horizontal, 12).padding(.bottom, 8)
-            } else if isLoadingHub {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Theme.border)
-                    .frame(width: 60, height: 8)
-                    .padding(.horizontal, 12).padding(.bottom, 8)
             }
+            .frame(height: 14, alignment: .leading)
+            .padding(.horizontal, 12).padding(.bottom, 8)
 
             Divider()
 
