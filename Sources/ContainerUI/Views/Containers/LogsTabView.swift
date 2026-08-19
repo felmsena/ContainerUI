@@ -12,18 +12,14 @@ struct LogsTabView: View {
             HStack(spacing: 8) {
                 Text("Last")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Picker("", selection: $lineCount) {
-                    Text("50").tag(50)
-                    Text("100").tag(100)
-                    Text("500").tag(500)
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(width: 60)
+                    .foregroundStyle(Theme.text2)
+                BrandTabs(
+                    items: [(50, "50", true), (100, "100", true), (500, "500", true)],
+                    selection: $lineCount
+                )
                 Text("lines")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.text2)
 
                 Spacer()
 
@@ -46,19 +42,24 @@ struct LogsTabView: View {
 
             Divider()
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    Text(logs.isEmpty ? String(localized: "No logs available") : logs)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(logs.isEmpty ? Theme.text3 : Theme.text2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding(10)
-                        .id("logBottom")
-                }
-                .background(Theme.surface)
-                .onChange(of: logs) { _, _ in
-                    proxy.scrollTo("logBottom", anchor: .bottom)
+            if logs.isEmpty {
+                EmptyStateView(icon: "text.alignleft", title: "No logs available")
+                    .background(Theme.surface)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        Text(logs)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Theme.text2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .padding(10)
+                            .id("logBottom")
+                    }
+                    .background(Theme.surface)
+                    .onChange(of: logs) { _, _ in
+                        proxy.scrollTo("logBottom", anchor: .bottom)
+                    }
                 }
             }
         }

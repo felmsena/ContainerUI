@@ -109,14 +109,11 @@ struct VolumeDetailView: View {
                         showDeleteAlert = true
                     } label: {
                         Label("Delete volume", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(Theme.danger)
+                    .buttonStyle(BrandButtonStyle(kind: .destructive, fill: true))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-                .controlSize(.large)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

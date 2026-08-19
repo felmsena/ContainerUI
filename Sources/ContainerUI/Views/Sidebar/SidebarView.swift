@@ -169,27 +169,28 @@ struct SidebarView: View {
     }
 
     private func statusCard(dotColor: Color, title: LocalizedStringKey, subtitle: LocalizedStringKey, action: (LocalizedStringKey, () -> Void)?) -> some View {
-        HStack(alignment: .top, spacing: 9) {
-            Circle()
-                .fill(dotColor)
-                .frame(width: 8, height: 8)
-                .padding(.top, 3)
-            VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 8, height: 8)
                 Text(title)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Theme.text)
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.text2)
-                    .lineLimit(2)
-            }
-            if let (label, handler) = action {
+                    .lineLimit(1)
                 Spacer(minLength: 0)
-                Button(label, action: handler)
-                    .font(.system(size: 11))
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                if let (label, handler) = action {
+                    Button(label, action: handler)
+                        .font(.system(size: 11))
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                }
             }
+            Text(subtitle)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.text2)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
         .padding(11)
         .background(dotColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))

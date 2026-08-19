@@ -133,10 +133,8 @@ struct ImageDetailView: View {
                             Image(systemName: "play.fill")
                             Text("Run container")
                         }
-                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(iconInfo.color)
+                    .buttonStyle(BrandButtonStyle(kind: .primary, fill: true))
 
                     Button(role: .destructive) {
                         showDeleteAlert = true
@@ -145,15 +143,12 @@ struct ImageDetailView: View {
                             Image(systemName: "trash")
                             Text("Delete")
                         }
-                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(Theme.danger)
+                    .buttonStyle(BrandButtonStyle(kind: .destructive, fill: true))
                     .disabled(!usingContainers.isEmpty)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-                .controlSize(.large)
 
                 if !usingContainers.isEmpty {
                     Text("Stop all containers using this image before deleting.")
