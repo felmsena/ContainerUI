@@ -23,7 +23,7 @@ struct ExecTabView: View {
                 HStack(spacing: 8) {
                     Text("$")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.accent)
                     TextField("ls -la /", text: $commandText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 12, design: .monospaced))
@@ -60,21 +60,22 @@ struct ExecTabView: View {
                             if entries.isEmpty {
                                 Text("Run a command to see its output here.")
                                     .font(.system(size: 12, design: .monospaced))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.text3)
                             }
                             ForEach(entries) { entry in
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack(alignment: .top, spacing: 6) {
                                         Text("$")
-                                            .foregroundStyle(.green)
+                                            .foregroundStyle(Theme.accent)
                                             .fontWeight(.bold)
                                         Text(entry.command)
                                             .fontWeight(.medium)
+                                            .foregroundStyle(Theme.text)
                                     }
                                     .font(.system(size: 12, design: .monospaced))
 
                                     if !entry.output.isEmpty {
-                                        let color: Color = entry.exitCode == 0 ? .primary : .red
+                                        let color: Color = entry.exitCode == 0 ? Theme.text2 : Theme.danger
                                         Text(entry.output)
                                             .font(.system(size: 12, design: .monospaced))
                                             .foregroundStyle(color)
@@ -88,7 +89,7 @@ struct ExecTabView: View {
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .background(Color(nsColor: .textBackgroundColor).opacity(0.4))
+                    .background(Theme.surface)
                     .onChange(of: entries.count) { _, _ in
                         if let last = entries.last?.id {
                             proxy.scrollTo(last, anchor: .bottom)
@@ -101,7 +102,7 @@ struct ExecTabView: View {
                         .font(.system(size: 36))
                         .foregroundStyle(.quaternary)
                     Text("Container is not running")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.text2)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

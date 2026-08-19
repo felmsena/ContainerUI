@@ -54,7 +54,7 @@ struct SystemStatsView: View {
                                 Task { await service.startService() }
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.green)
+                            .tint(Theme.accent)
                         }
                     }
                 }
