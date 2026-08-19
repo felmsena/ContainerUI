@@ -44,11 +44,13 @@ struct RegistryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $mode) {
-                ForEach(Mode.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
+            HStack {
+                BrandTabs(
+                    items: Mode.allCases.map { ($0, LocalizedStringKey($0.rawValue), true) },
+                    selection: $mode
+                )
+                Spacer(minLength: 0)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
@@ -95,22 +97,21 @@ struct RegistryView: View {
                                 .foregroundStyle(Theme.text2)
                                 .padding(.horizontal, 16)
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(category.entries) { entry in
-                                        RegistryCard(entry: entry,
-                                                     isLoadingHub: isLoadingHub,
-                                                     isSelected: selectedEntry?.id == entry.id) {
-                                            selectedEntry = entry
-                                        } onPull: {
-                                            Task { try? await service.pullImage(entry.fullRef) }
-                                        } onRun: {
-                                            runEntry = entry
-                                        }
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 210, maximum: 280), spacing: 10)],
+                                      spacing: 10) {
+                                ForEach(category.entries) { entry in
+                                    RegistryCard(entry: entry,
+                                                 isLoadingHub: isLoadingHub,
+                                                 isSelected: selectedEntry?.id == entry.id) {
+                                        selectedEntry = entry
+                                    } onPull: {
+                                        Task { try? await service.pullImage(entry.fullRef) }
+                                    } onRun: {
+                                        runEntry = entry
                                     }
                                 }
-                                .padding(.horizontal, 16)
                             }
+                            .padding(.horizontal, 16)
                         }
                     }
                 }
@@ -185,7 +186,7 @@ struct RegistryView: View {
                         .onTapGesture { selectedEntry = hubRepoToEntry(repo) }
                         .listRowBackground(
                             selectedEntry?.image == repo.repoName
-                                ? Color.accentColor.opacity(0.08)
+                                ? Theme.accentSoft
                                 : Color.clear
                         )
                     }
@@ -338,7 +339,7 @@ struct RegistryCard: View {
                         Text(entry.name).font(.system(size: 13, weight: .semibold))
                         if entry.isOfficial {
                             Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 10)).foregroundStyle(.blue)
+                                .font(.system(size: 10)).foregroundStyle(Theme.accent)
                         }
                     }
                     Text(entry.fullRef)
@@ -391,11 +392,9 @@ struct RegistryCard: View {
                         Image(systemName: isAlreadyPulled ? "checkmark" : "arrow.down.circle")
                             .font(.system(size: 10))
                         Text(isAlreadyPulled ? "Pulled" : "Pull")
-                            .font(.system(size: 11, weight: .medium))
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered).controlSize(.small)
+                .buttonStyle(BrandButtonStyle(kind: .secondary, fill: true))
                 .disabled(isAlreadyPulled)
 
                 Button {
@@ -403,16 +402,14 @@ struct RegistryCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "play.fill").font(.system(size: 10))
-                        Text("Run").font(.system(size: 11, weight: .medium))
+                        Text("Run")
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent).controlSize(.small)
-                .tint(entry.color)
+                .buttonStyle(BrandButtonStyle(kind: .primary, fill: true))
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
         }
-        .frame(width: 210)
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(isSelected ? Theme.accentSoft : Theme.surface)
@@ -448,7 +445,7 @@ struct HubRepoRow: View {
                         Text("Official")
                             .font(.system(size: 9, weight: .medium))
                             .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Color(hex: "#3B82F6").opacity(0.15)).foregroundStyle(Color(hex: "#3B82F6"))
+                            .background(Theme.accentSoft).foregroundStyle(Theme.accent)
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
@@ -464,10 +461,10 @@ struct HubRepoRow: View {
             }
             Spacer()
             HStack(spacing: 6) {
-                Button("Pull", action: onPull).buttonStyle(.bordered).controlSize(.small)
+                Button("Pull", action: onPull).buttonStyle(BrandButtonStyle(kind: .secondary))
                 Button { onRun() } label: {
                     Label("Run", systemImage: "play.fill")
-                }.buttonStyle(.borderedProminent).controlSize(.small)
+                }.buttonStyle(BrandButtonStyle(kind: .primary))
             }
         }
         .padding(.vertical, 4)

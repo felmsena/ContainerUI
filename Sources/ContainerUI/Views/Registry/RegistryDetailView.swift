@@ -33,9 +33,9 @@ struct RegistryDetailView: View {
                             if entry.isOfficial {
                                 Label("Official", systemImage: "checkmark.seal.fill")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(Color(hex: "#3B82F6"))
+                                    .foregroundStyle(Theme.accent)
                                     .padding(.horizontal, 7).padding(.vertical, 3)
-                                    .background(Color(hex: "#3B82F6").opacity(0.14))
+                                    .background(Theme.accentSoft)
                                     .clipShape(Capsule())
                             }
                         }
@@ -172,10 +172,8 @@ struct RegistryDetailView: View {
                             .frame(width: 14, height: 14)
                             Text(isPulling ? "Cancel" : isAlreadyPulled ? "Already pulled" : "Pull image")
                         }
-                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(isPulling ? Theme.danger : nil)
+                    .buttonStyle(BrandButtonStyle(kind: isPulling ? .destructive : .secondary, fill: true))
                     .disabled(isAlreadyPulled && !isPulling)
 
                     Button {
@@ -185,14 +183,11 @@ struct RegistryDetailView: View {
                             Image(systemName: "play.fill")
                             Text("Run")
                         }
-                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(entry.color)
+                    .buttonStyle(BrandButtonStyle(kind: .primary, fill: true))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
-                .controlSize(.large)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
