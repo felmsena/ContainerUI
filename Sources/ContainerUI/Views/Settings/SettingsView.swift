@@ -159,7 +159,7 @@ struct SettingsView: View {
                                 }
                             }
                             .buttonStyle(.bordered)
-                            .tint(.red)
+                            .tint(Theme.danger)
                         }
                     }
                 }

@@ -13,23 +13,24 @@ struct SystemStatsView: View {
                     SectionCard(title: "Service") {
                         HStack(spacing: 10) {
                             Circle()
-                                .fill(status.isRunning ? Color.green : Color.secondary)
+                                .fill(status.isRunning ? Theme.accent : Theme.text3)
                                 .frame(width: 10, height: 10)
                             Text(status.isRunning ? "Running" : "Stopped")
                                 .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Theme.text)
                             Spacer()
                             if status.isRunning {
                                 Button("Stop service") {
                                     Task { await service.stopService() }
                                 }
                                 .buttonStyle(.bordered)
-                                .tint(.red)
+                                .tint(Theme.danger)
                             } else {
                                 Button("Start service") {
                                     Task { await service.startService() }
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(.green)
+                                .tint(Theme.accent)
                             }
                         }
 
@@ -43,11 +44,11 @@ struct SystemStatsView: View {
                     SectionCard(title: "Service") {
                         HStack {
                             Circle()
-                                .fill(Color.secondary)
+                                .fill(Theme.text3)
                                 .frame(width: 10, height: 10)
                             Text("Unknown — service may not be running")
                                 .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.text2)
                             Spacer()
                             Button("Start service") {
                                 Task { await service.startService() }
@@ -70,7 +71,7 @@ struct SystemStatsView: View {
                                 Text("Reclaimable").frame(width: 110, alignment: .trailing)
                             }
                             .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.text3)
                             .padding(.bottom, 6)
 
                             Divider()
@@ -79,19 +80,21 @@ struct SystemStatsView: View {
                                 HStack {
                                     HStack(spacing: 6) {
                                         Image(systemName: dfIcon(for: row.type))
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Theme.text2)
                                             .font(.system(size: 12))
                                         Text(row.type)
+                                            .foregroundStyle(Theme.text)
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    Text(row.total).frame(width: 50, alignment: .trailing)
-                                    Text(row.active).frame(width: 50, alignment: .trailing)
+                                    Text(row.total).foregroundStyle(Theme.text).frame(width: 50, alignment: .trailing)
+                                    Text(row.active).foregroundStyle(Theme.text).frame(width: 50, alignment: .trailing)
                                     Text(row.size)
                                         .font(.system(size: 12, design: .monospaced))
+                                        .foregroundStyle(Theme.text)
                                         .frame(width: 80, alignment: .trailing)
                                     Text(row.reclaimable)
                                         .font(.system(size: 12, design: .monospaced))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.text2)
                                         .frame(width: 110, alignment: .trailing)
                                 }
                                 .font(.system(size: 13))

@@ -16,22 +16,25 @@ struct SystemLogsView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.text3)
                     .font(.system(size: 13))
                 TextField("Filter logs…", text: $filterText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5))
                 if !filterText.isEmpty {
                     Button { filterText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.text3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear filter")
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Theme.bg)
 
             Divider()
 
@@ -48,13 +51,13 @@ struct SystemLogsView: View {
                     ScrollView {
                         Text(displayedLogs)
                             .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Theme.text2)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                             .padding(12)
                             .id("sysLogBottom")
                     }
-                    .background(Color(nsColor: .textBackgroundColor).opacity(0.4))
+                    .background(Theme.surface)
                     .onChange(of: logs) { _, _ in
                         proxy.scrollTo("sysLogBottom", anchor: .bottom)
                     }
