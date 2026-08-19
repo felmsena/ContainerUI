@@ -63,6 +63,7 @@ struct ContentView: View {
 
         NavigationSplitView {
             SidebarView(selected: $service.sidebarItem)
+                .navigationSplitViewColumnWidth(min: 224, ideal: 248, max: 280)
         } content: {
             switch service.sidebarItem {
             case .containers: ContainerListView(selected: $selectedContainer)
@@ -137,6 +138,8 @@ struct ContentView: View {
             RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
                 .environmentObject(service)
         }
+        .tint(Theme.accent)
+        .background(Theme.bg)
         }
         .animation(.easeOut(duration: 0.2), value: service.serviceError)
         .animation(.easeOut(duration: 0.2), value: service.availableUpdate)

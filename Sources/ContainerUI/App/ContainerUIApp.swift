@@ -8,6 +8,7 @@ struct ContainerUIApp: App {
         WindowGroup(id: "main-window") {
             ContentView()
                 .environmentObject(service)
+                .background(WindowChrome().frame(width: 0, height: 0))
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 1100, height: 680)
