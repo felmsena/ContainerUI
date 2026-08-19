@@ -38,11 +38,17 @@
 "Run Container…" = "Ejecutar contenedor…";
 
 /* Sidebar */
+"Manage" = "Gestionar";
+"Explore" = "Explorar";
+"Monitor" = "Monitor";
 "Starting service…" = "Iniciando servicio…";
 "Apple Container not installed" = "Apple Container no está instalado";
+"Install it to get started" = "Instálalo para empezar";
 "Service not running" = "Servicio detenido";
+"Start it to manage containers" = "Inícialo para administrar contenedores";
 "Start" = "Iniciar";
 "Service running" = "Servicio en ejecución";
+"Apple Container is active" = "Apple Container está activo";
 "Stop" = "Detener";
 
 /* Menu bar */
