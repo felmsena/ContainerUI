@@ -30,8 +30,8 @@ struct GroupDetailView: View {
                             .font(.system(size: 12, design: .monospaced))
                             .frame(minHeight: 260)
                             .padding(6)
-                            .background(Color(nsColor: .textBackgroundColor))
-                            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+                            .background(Theme.surface)
+                            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.border))
                             .onChange(of: text) { _, newValue in
                                 parseResult = ComposeParser.parse(newValue)
                                 try? newValue.write(to: fileURL, atomically: true, encoding: .utf8)
@@ -41,7 +41,7 @@ struct GroupDetailView: View {
                     if let validationError {
                         Label(validationError, systemImage: "exclamationmark.triangle.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warn)
                             .textSelection(.enabled)
                     }
 
@@ -82,6 +82,7 @@ struct GroupDetailView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
                 .disabled(isBusy || parsedGroup == nil)
             }
             .padding(.horizontal, 20)
@@ -101,7 +102,7 @@ struct GroupDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
             content()
         }
     }
@@ -114,14 +115,15 @@ struct GroupDetailView: View {
                 .frame(width: 7, height: 7)
             Text(svc.name)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.text)
             Text(svc.image)
                 .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .lineLimit(1)
             Spacer()
             Text(label(state))
                 .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .lineLimit(1)
         }
         .padding(.vertical, 4)
@@ -138,10 +140,10 @@ struct GroupDetailView: View {
 
     private func color(_ state: ComposeServiceState) -> Color {
         switch state {
-        case .pending, .stopped: return .secondary
-        case .starting, .stopping: return .orange
-        case .running: return .green
-        case .failed: return .red
+        case .pending, .stopped: return Theme.text3
+        case .starting, .stopping: return Theme.warn
+        case .running: return Theme.accent
+        case .failed: return Theme.danger
         }
     }
 

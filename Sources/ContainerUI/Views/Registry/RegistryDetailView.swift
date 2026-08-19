@@ -33,16 +33,16 @@ struct RegistryDetailView: View {
                             if entry.isOfficial {
                                 Label("Official", systemImage: "checkmark.seal.fill")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color(hex: "#3B82F6"))
                                     .padding(.horizontal, 7).padding(.vertical, 3)
-                                    .background(Color.blue.opacity(0.1))
+                                    .background(Color(hex: "#3B82F6").opacity(0.14))
                                     .clipShape(Capsule())
                             }
                         }
 
                         Text(entry.fullRef)
                             .font(.system(size: 13, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.text2)
                     }
 
                     // Stats row
@@ -73,7 +73,7 @@ struct RegistryDetailView: View {
                         sectionHeader("About")
                         Text(entry.description)
                             .font(.system(size: 13))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Theme.text)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 20)
@@ -93,7 +93,7 @@ struct RegistryDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Ports")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Theme.text3)
                                 .textCase(.uppercase)
                             VStack(spacing: 4) {
                                 ForEach(entry.defaultPorts, id: \.0) { host, container in
@@ -122,16 +122,16 @@ struct RegistryDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Environment Variables")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Theme.text3)
                                 .textCase(.uppercase)
                             VStack(alignment: .leading, spacing: 3) {
                                 ForEach(entry.defaultEnv, id: \.self) { env in
                                     Text(env)
                                         .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.text2)
                                         .padding(.horizontal, 8).padding(.vertical, 3)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color(nsColor: .controlBackgroundColor))
+                                        .background(Theme.surface2)
                                         .clipShape(RoundedRectangle(cornerRadius: 5))
                                         .textSelection(.enabled)
                                 }
@@ -175,7 +175,7 @@ struct RegistryDetailView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(isPulling ? .red : nil)
+                    .tint(isPulling ? Theme.danger : nil)
                     .disabled(isAlreadyPulled && !isPulling)
 
                     Button {
@@ -215,7 +215,7 @@ struct RegistryDetailView: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(Theme.text3)
             .textCase(.uppercase)
             .tracking(0.5)
     }
@@ -225,11 +225,11 @@ struct RegistryDetailView: View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 70, alignment: .leading)
             Text(value)
                 .font(monospaced ? .system(size: 12, design: .monospaced) : .system(size: 12))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .textSelection(.enabled)
             Spacer()
         }
@@ -247,7 +247,7 @@ struct RegistryDetailView: View {
             }
             Text(label)
                 .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Theme.text3)
         }
     }
 

@@ -22,6 +22,7 @@ struct GroupsView: View {
                 ) {
                     Button("New Group…", action: createGroup)
                         .buttonStyle(.borderedProminent)
+                        .tint(Theme.accent)
                 }
             } else {
                 List(groupFiles, id: \.self, selection: $selected) { url in
@@ -96,15 +97,21 @@ private struct GroupRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "rectangle.3.group")
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: "#14B8A6").opacity(0.14))
+                    .frame(width: 28, height: 28)
+                Image(systemName: "rectangle.3.group")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(hex: "#14B8A6"))
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.text)
                 Text(fileURL.path)
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.text3)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
@@ -113,7 +120,7 @@ private struct GroupRow: View {
             if total > 0 {
                 Text("\(running)/\(total)")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(running > 0 ? .green : .secondary)
+                    .foregroundStyle(running > 0 ? Theme.accent : Theme.text2)
             }
         }
         .padding(.vertical, 2)

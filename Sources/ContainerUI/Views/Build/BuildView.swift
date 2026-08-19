@@ -24,7 +24,7 @@ struct BuildView: View {
                         HStack(spacing: 8) {
                             Text(contextDir?.path ?? String(localized: "No folder selected"))
                                 .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(contextDir == nil ? .secondary : .primary)
+                                .foregroundStyle(contextDir == nil ? Theme.text2 : Theme.text)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,11 +37,11 @@ struct BuildView: View {
                             if let detectedFile {
                                 Label("Found \(detectedFile)", systemImage: "checkmark.circle.fill")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(Theme.accent)
                             } else {
                                 Label("No Dockerfile or Containerfile in \(contextDir.lastPathComponent)", systemImage: "exclamationmark.triangle.fill")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.warn)
                             }
                         }
                     }
@@ -62,7 +62,7 @@ struct BuildView: View {
                                         .font(.system(size: 12, design: .monospaced))
                                         .frame(maxWidth: .infinity)
                                     Text("=")
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.text2)
                                         .font(.system(size: 13, design: .monospaced))
                                     TextField("value", text: $arg.value)
                                         .textFieldStyle(.roundedBorder)
@@ -71,7 +71,7 @@ struct BuildView: View {
                                     Button {
                                         buildArgs.removeAll { $0.id == arg.id }
                                     } label: {
-                                        Image(systemName: "minus.circle.fill").foregroundStyle(.red)
+                                        Image(systemName: "minus.circle.fill").foregroundStyle(Theme.danger)
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityLabel("Remove build argument")
@@ -99,14 +99,14 @@ struct BuildView: View {
                                 ScrollView {
                                     Text(logText)
                                         .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(Theme.text2)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .textSelection(.enabled)
                                         .padding(10)
                                         .id("logBottom")
                                 }
                                 .frame(height: 280)
-                                .background(Color(nsColor: .textBackgroundColor).opacity(0.4))
+                                .background(Theme.surface)
                                 .onChange(of: logText) { _, _ in
                                     proxy.scrollTo("logBottom", anchor: .bottom)
                                 }
@@ -140,7 +140,7 @@ struct BuildView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(Theme.accent)
                 .disabled(isBuilding || contextDir == nil || detectedFile == nil || tag.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 20)
@@ -154,7 +154,7 @@ struct BuildView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
             content()
         }
     }

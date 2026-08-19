@@ -92,7 +92,7 @@ struct RegistryView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Label(LocalizedStringKey(category.name), systemImage: category.icon)
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.text2)
                                 .padding(.horizontal, 16)
 
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -138,23 +138,26 @@ struct RegistryView: View {
     private var searchTab: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.tertiary).font(.system(size: 13))
+                Image(systemName: "magnifyingglass").foregroundStyle(Theme.text3).font(.system(size: 13))
                 TextField("Search Docker Hub…", text: $searchText)
-                    .textFieldStyle(.plain).font(.system(size: 13))
+                    .textFieldStyle(.plain).font(.system(size: 12.5))
                     .onSubmit { triggerSearch() }
                     .onChange(of: searchText) { _, _ in triggerSearch() }
                 if isSearching {
                     ProgressView().scaleEffect(0.6)
                 } else if !searchText.isEmpty {
                     Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.text3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Theme.bg)
 
             Divider()
 
@@ -340,7 +343,7 @@ struct RegistryCard: View {
                     }
                     Text(entry.fullRef)
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.text2)
                 }
             }
             .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 6)
@@ -348,13 +351,13 @@ struct RegistryCard: View {
             Group {
                 if isLoadingHub && entry.description.isEmpty {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(nsColor: .separatorColor))
+                        .fill(Theme.border)
                         .frame(height: 10)
                         .padding(.bottom, 4)
                 } else {
                     Text(entry.description.isEmpty ? entry.fullRef : entry.description)
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.text2)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -364,16 +367,16 @@ struct RegistryCard: View {
             if entry.pullCount > 0 {
                 HStack(spacing: 8) {
                     Label(formatCount(entry.pullCount), systemImage: "arrow.down.circle")
-                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                        .font(.system(size: 10)).foregroundStyle(Theme.text3)
                     if entry.starCount > 0 {
                         Label("\(entry.starCount)", systemImage: "star.fill")
-                            .font(.system(size: 10)).foregroundStyle(.tertiary)
+                            .font(.system(size: 10)).foregroundStyle(Theme.text3)
                     }
                 }
                 .padding(.horizontal, 12).padding(.bottom, 8)
             } else if isLoadingHub {
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(nsColor: .separatorColor))
+                    .fill(Theme.border)
                     .frame(width: 60, height: 8)
                     .padding(.horizontal, 12).padding(.bottom, 8)
             }
@@ -412,12 +415,10 @@ struct RegistryCard: View {
         .frame(width: 210)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected
-                      ? entry.color.opacity(0.08)
-                      : Color(nsColor: .controlBackgroundColor))
+                .fill(isSelected ? Theme.accentSoft : Theme.surface)
                 .overlay(RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isSelected ? entry.color : Color(nsColor: .separatorColor),
-                                  lineWidth: isSelected ? 1.5 : 0.5))
+                    .strokeBorder(isSelected ? Theme.accent : Theme.border,
+                                  lineWidth: isSelected ? 1.5 : 1))
         )
         .contentShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { onSelect() }
@@ -435,30 +436,30 @@ struct HubRepoRow: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.accentColor.opacity(0.1))
+                    .fill(Theme.accentSoft)
                     .frame(width: 36, height: 36)
                 Image(systemName: repo.isOfficial ? "checkmark.seal.fill" : "shippingbox.fill")
-                    .font(.system(size: 16)).foregroundStyle(.secondary)
+                    .font(.system(size: 16)).foregroundStyle(Theme.accent)
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(repo.repoName).font(.system(size: 13, weight: .medium))
+                    Text(repo.repoName).font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.text)
                     if repo.isOfficial {
                         Text("Official")
                             .font(.system(size: 9, weight: .medium))
                             .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Color.blue.opacity(0.15)).foregroundStyle(.blue)
+                            .background(Color(hex: "#3B82F6").opacity(0.15)).foregroundStyle(Color(hex: "#3B82F6"))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
                 if !repo.shortDescription.isEmpty {
-                    Text(repo.shortDescription).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(repo.shortDescription).font(.system(size: 11)).foregroundStyle(Theme.text2).lineLimit(1)
                 }
                 HStack(spacing: 10) {
                     Label(formatCount(repo.pullCount), systemImage: "arrow.down.circle")
-                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                        .font(.system(size: 10)).foregroundStyle(Theme.text3)
                     Label("\(repo.starCount)", systemImage: "star.fill")
-                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                        .font(.system(size: 10)).foregroundStyle(Theme.text3)
                 }
             }
             Spacer()
