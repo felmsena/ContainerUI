@@ -28,6 +28,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
 
 struct ContentView: View {
     @EnvironmentObject var service: ContainerService
+    @AppStorage("appAppearance") private var appAppearance = AppAppearance.system
     @State private var selectedContainer: ContainerInfo?
     @State private var selectedImage: ImageInfo?
     @State private var selectedRegistryEntry: RegistryEntry?
@@ -136,5 +137,6 @@ struct ContentView: View {
         }
         .animation(.easeOut(duration: 0.2), value: service.serviceError)
         .animation(.easeOut(duration: 0.2), value: service.availableUpdate)
+        .preferredColorScheme(appAppearance.colorScheme)
     }
 }

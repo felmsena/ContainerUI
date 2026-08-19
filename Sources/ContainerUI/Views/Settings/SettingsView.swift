@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("notifyBuildFinished") private var notifyBuildFinished = true
     @AppStorage("notifyPullFinished") private var notifyPullFinished = false
     @AppStorage("autoCheckForUpdates") private var autoCheckForUpdates = true
+    @AppStorage("appAppearance") private var appAppearance = AppAppearance.system
     @State private var isCheckingForUpdates = false
     @EnvironmentObject var service: ContainerService
 
@@ -42,6 +43,22 @@ struct SettingsView: View {
                 }
 
                 SectionCard(title: "Preferences") {
+                    HStack {
+                        Text("Appearance")
+                            .font(.system(size: 13))
+                        Spacer()
+                        Picker("", selection: $appAppearance) {
+                            ForEach(AppAppearance.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .frame(width: 110)
+                    }
+
+                    Divider()
+
                     HStack {
                         Text("Refresh every")
                             .font(.system(size: 13))

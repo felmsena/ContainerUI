@@ -273,6 +273,9 @@
 "Binary" = "Binario";
 "Path" = "Ruta";
 "Preferences" = "Preferencias";
+"Appearance" = "Apariencia";
+"Light" = "Claro";
+"Dark" = "Oscuro";
 "Refresh every" = "Actualizar cada";
 "Default browser port" = "Puerto del navegador por defecto";
 "Updates" = "Actualizaciones";
