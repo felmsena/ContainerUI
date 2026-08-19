@@ -74,7 +74,7 @@ struct InfoTabView: View {
                             } label: {
                                 Image(systemName: copiedKey == key ? "checkmark" : "doc.on.doc")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(copiedKey == key ? Color.green : Color(nsColor: .tertiaryLabelColor))
+                                    .foregroundStyle(copiedKey == key ? Theme.accent : Theme.text3)
                             }
                             .buttonStyle(.plain)
                             .help(LocalizedStringKey("Copy \(label)"))
@@ -207,7 +207,7 @@ struct InfoTabView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
-                            .tint(.red)
+                            .tint(Theme.danger)
                         }
 
                     } else {
@@ -218,7 +218,7 @@ struct InfoTabView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.green)
+                        .tint(Theme.accent)
                     }
                 }
                 .padding(12)

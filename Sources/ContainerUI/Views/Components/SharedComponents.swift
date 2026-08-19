@@ -7,20 +7,21 @@ struct SectionCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 10.5, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(Theme.text3)
                 .textCase(.uppercase)
 
             VStack(alignment: .leading, spacing: 8) {
                 content
             }
-            .padding(12)
+            .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Theme.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Theme.border, lineWidth: 1)
                     )
             )
         }
@@ -46,7 +47,7 @@ struct CopyButton: View {
         } label: {
             Image(systemName: copied ? "checkmark" : "doc.on.doc")
                 .font(.system(size: size))
-                .foregroundStyle(copied ? Color.green : Color(nsColor: .tertiaryLabelColor))
+                .foregroundStyle(copied ? Theme.accent : Theme.text3)
         }
         .buttonStyle(.plain)
         .help(help)
@@ -62,10 +63,11 @@ struct KeyValueRow: View {
         HStack(alignment: .top) {
             Text(key)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 90, alignment: .leading)
             Text(value.isEmpty ? "—" : value)
                 .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(Theme.text)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

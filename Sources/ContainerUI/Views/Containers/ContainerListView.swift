@@ -32,25 +32,26 @@ struct ContainerListView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.text3)
                     .font(.system(size: 13))
                 TextField("Search containers…", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5))
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Theme.text3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear search")
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(Color(nsColor: .controlBackgroundColor))
-
-            Divider()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Theme.bg)
 
             if !searchText.isEmpty && filtered.isEmpty {
                 emptySearch
@@ -73,6 +74,7 @@ struct ContainerListView: View {
                     }
                     .padding(12)
                 }
+                .background(Theme.bg)
                 .focusable()
                 .focused($isListFocused)
                 .onKeyPress(.space) {
@@ -145,7 +147,7 @@ struct ContainerListView: View {
                 VStack(spacing: 10) {
                     Image(systemName: "shippingbox.and.arrow.backward")
                         .font(.system(size: 48))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Theme.accent)
                     Text("Apple Container not installed")
                         .font(.system(size: 16, weight: .semibold))
                     Text("Install Apple Container with Homebrew to manage\nlightweight macOS VMs.")
@@ -183,7 +185,7 @@ struct ContainerListView: View {
                         .frame(minWidth: 130)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(Theme.accent)
                 .controlSize(.large)
             }
 
@@ -219,7 +221,7 @@ struct ContainerListView: View {
                         .frame(minWidth: 130)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(Theme.accent)
                 .controlSize(.large)
             }
         }
@@ -239,22 +241,23 @@ private struct OnboardingStep: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.blue))
+                .background(Circle().fill(Theme.accent))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.text)
                 HStack(spacing: 6) {
                     Text(code)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.text2)
                         .lineLimit(2)
                         .textSelection(.enabled)
                     Spacer(minLength: 0)
                     CopyButton(text: code, help: "Copy command")
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(Theme.surface2)
                 .clipShape(RoundedRectangle(cornerRadius: 7))
             }
         }

@@ -7,71 +7,100 @@ struct ContainerCardView: View {
     @State private var showRemoveAlert = false
     @State private var showKillAlert = false
 
+    /// Stable per-container icon hue derived from the image name, so cards
+    /// read as visually distinct at a glance (mirrors the mockup's colored
+    /// icon chips without fabricating data that isn't actually available).
+    private var iconHue: Color {
+        let palette: [Color] = [
+            Color(hex: "#3B82F6"), Color(hex: "#22C55E"), Color(hex: "#EAB308"),
+            Color(hex: "#A855F7"), Color(hex: "#EF4444"), Color(hex: "#14B8A6")
+        ]
+        let hash = abs(container.shortImage.hashValue)
+        return palette[hash % palette.count]
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .center, spacing: 10) {
-                Circle()
-                    .fill(container.state.color)
-                    .frame(width: 8, height: 8)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(iconHue.opacity(0.16))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: "shippingbox.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(iconHue)
+                }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(container.id)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 13.5, weight: .semibold))
+                        .foregroundStyle(Theme.text)
                         .lineLimit(1)
                     Text(container.image)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Theme.text2)
                         .lineLimit(1)
                 }
 
-                Spacer()
+                Spacer(minLength: 6)
 
                 HStack(spacing: 5) {
-                    if container.state.isRunning {
-                        CardButton(icon: "terminal", tooltip: "Open shell") {
-                            service.openShell(for: container.id)
-                        }
-                        CardButton(icon: "stop.fill", tooltip: "Stop") {
-                            Task { await service.stop(container.id) }
-                        }
-                        CardButton(icon: "arrow.clockwise", tooltip: "Restart") {
-                            Task { await service.restart(container.id) }
-                        }
-                    } else {
-                        CardButton(icon: "play.fill", tooltip: "Start") {
-                            Task { await service.start(container.id) }
-                        }
-                    }
-                    CardButton(icon: "trash", tooltip: "Remove", destructive: true) {
-                        showRemoveAlert = true
-                    }
+                    Circle()
+                        .fill(container.state.isRunning ? Theme.accent : Theme.text3)
+                        .frame(width: 6, height: 6)
+                    Text(container.state.label)
+                        .font(.system(size: 10.5, weight: .bold))
+                        .foregroundStyle(container.state.isRunning ? Theme.accent : Theme.text3)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    (container.state.isRunning ? Theme.accentSoft : Theme.surface2),
+                    in: Capsule()
+                )
             }
 
-            HStack(spacing: 16) {
-                if !container.ipWithoutMask.isEmpty {
-                    MetaItem(label: "IP", value: container.ipWithoutMask)
-                }
+            HStack(spacing: 14) {
                 MetaItem(label: "Memory", value: container.memory)
                 MetaItem(label: "CPUs", value: "\(container.cpus)")
                 MetaItem(label: "Arch", value: container.arch)
                 if container.state.isRunning {
                     MetaItem(label: "Uptime", value: container.uptimeDisplay, highlight: true)
+                }
+            }
+
+            HStack(spacing: 5) {
+                if container.state.isRunning {
+                    CardButton(icon: "terminal", tooltip: "Open shell") {
+                        service.openShell(for: container.id)
+                    }
+                    CardButton(icon: "stop.fill", tooltip: "Stop") {
+                        Task { await service.stop(container.id) }
+                    }
+                    CardButton(icon: "arrow.clockwise", tooltip: "Restart") {
+                        Task { await service.restart(container.id) }
+                    }
                 } else {
-                    MetaItem(label: "State", value: container.state.label)
+                    CardButton(icon: "play.fill", tooltip: "Start") {
+                        Task { await service.start(container.id) }
+                    }
+                }
+                Spacer(minLength: 0)
+                CardButton(icon: "trash", tooltip: "Remove", destructive: true) {
+                    showRemoveAlert = true
                 }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.vertical, 13)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(nsColor: .controlBackgroundColor))
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isSelected ? Theme.accentSoft : Theme.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(
-                            isSelected ? Color.green : Color(nsColor: .separatorColor),
-                            lineWidth: isSelected ? 1.5 : 0.5
+                            isSelected ? Theme.accent : Theme.border,
+                            lineWidth: isSelected ? 1.5 : 1
                         )
                 )
         )
@@ -140,15 +169,11 @@ struct CardButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 11))
-                .foregroundStyle(destructive ? Color.red : Color.secondary)
+                .foregroundStyle(destructive ? Theme.danger : Theme.text2)
                 .frame(width: 26, height: 26)
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(nsColor: .windowBackgroundColor))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5)
-                        )
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(destructive ? Theme.dangerSoft : Theme.surface2)
                 )
         }
         .buttonStyle(.plain)
@@ -165,11 +190,13 @@ struct MetaItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 9.5, weight: .medium))
+                .tracking(0.3)
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.text3)
             Text(value)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(highlight ? .green : .primary)
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(highlight ? Theme.accent : Theme.text)
         }
     }
 }

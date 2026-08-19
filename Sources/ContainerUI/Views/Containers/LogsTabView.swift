@@ -50,13 +50,13 @@ struct LogsTabView: View {
                 ScrollView {
                     Text(logs.isEmpty ? String(localized: "No logs available") : logs)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(logs.isEmpty ? .secondary : .primary)
+                        .foregroundStyle(logs.isEmpty ? Theme.text3 : Theme.text2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                         .padding(10)
                         .id("logBottom")
                 }
-                .background(Color(nsColor: .textBackgroundColor).opacity(0.4))
+                .background(Theme.surface)
                 .onChange(of: logs) { _, _ in
                     proxy.scrollTo("logBottom", anchor: .bottom)
                 }

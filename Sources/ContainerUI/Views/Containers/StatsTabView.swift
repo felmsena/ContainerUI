@@ -30,7 +30,7 @@ struct StatsTabView: View {
                                         x: .value("Time", sample.timestamp),
                                         y: .value("CPU %", sample.cpuPercent)
                                     )
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Theme.accent)
                                     .interpolationMethod(.catmullRom)
                                 }
                                 .frame(height: 90)
@@ -45,12 +45,12 @@ struct StatsTabView: View {
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(.green.opacity(0.25))
+                                    .foregroundStyle(Color(hex: "#3B82F6").opacity(0.25))
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(Color(hex: "#3B82F6"))
                                 }
                                 .frame(height: 90)
                             }
@@ -105,24 +105,24 @@ struct StatCard: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 20)
             Text(label)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
             Spacer()
             Text(value)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(nsColor: .controlBackgroundColor))
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Theme.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Theme.border, lineWidth: 1)
                 )
         )
     }
