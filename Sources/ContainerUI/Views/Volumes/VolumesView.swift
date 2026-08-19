@@ -11,14 +11,20 @@ struct VolumesView: View {
                 EmptyStateView(icon: "externaldrive", title: "No volumes") {
                     Button("Create volume") { showCreateSheet = true }
                         .buttonStyle(.borderedProminent)
-                        .tint(.green)
+                        .tint(Theme.accent)
                 }
             } else {
-                List(service.volumes, selection: $selected) { volume in
-                    VolumeRowView(volume: volume, isSelected: selected?.id == volume.id)
-                        .tag(volume)
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(service.volumes) { volume in
+                            VolumeRowView(volume: volume, isSelected: selected?.id == volume.id)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selected = volume }
+                        }
+                    }
+                    .padding(12)
                 }
-                .listStyle(.inset)
+                .background(Theme.bg)
             }
         }
         .navigationTitle("Volumes")
@@ -66,27 +72,28 @@ struct VolumeRowView: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.12))
+                    .fill(Color(hex: "#D97706").opacity(0.14))
                     .frame(width: 32, height: 32)
                 Image(systemName: "externaldrive.fill")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color(hex: "#D97706"))
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(volume.name)
                     .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.text)
                 HStack(spacing: 6) {
                     if !volume.driver.isEmpty {
                         Text(volume.driver)
                             .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.text2)
                     }
                     if !volume.type.isEmpty {
-                        Text("·").foregroundStyle(.tertiary).font(.system(size: 11))
+                        Text("·").foregroundStyle(Theme.text3).font(.system(size: 11))
                         Text(volume.type)
                             .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Theme.text3)
                     }
                 }
             }
@@ -98,13 +105,22 @@ struct VolumeRowView: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 12))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
             .help("Delete volume")
             .accessibilityLabel("Delete \(volume.name)")
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Theme.accentSoft : Theme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(isSelected ? Theme.accent : Theme.border, lineWidth: isSelected ? 1.5 : 1)
+                )
+        )
         .alert("Delete volume \"\(volume.name)\"?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 Task { await service.deleteVolume(volume.name) }
@@ -146,7 +162,7 @@ struct CreateVolumeSheet: View {
                 Button("Cancel") { isPresented = false }.keyboardShortcut(.escape)
                 Button("Create") { Task { await create() } }
                     .buttonStyle(.borderedProminent)
-                    .tint(.green)
+                    .tint(Theme.accent)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
             }
         }

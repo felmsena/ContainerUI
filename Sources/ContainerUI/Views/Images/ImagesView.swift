@@ -34,41 +34,48 @@ struct ImagesView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.text3)
                     .font(.system(size: 13))
                 TextField("Search images…", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12.5))
                 if !searchText.isEmpty {
                     Button { searchText = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.text3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear search")
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(Color(nsColor: .controlBackgroundColor))
-
-            Divider()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Theme.bg)
 
             if filtered.isEmpty {
                 if searchText.isEmpty {
                     EmptyStateView(icon: "photo.stack", title: "No images") {
                         Button("Pull an image") { showPullSheet = true }
                             .buttonStyle(.borderedProminent)
-                            .tint(.green)
+                            .tint(Theme.accent)
                     }
                 } else {
                     EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
                 }
             } else {
-                List(filtered, selection: $selected) { image in
-                    ImageRowView(image: image, isSelected: selected?.id == image.id)
-                        .tag(image)
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(filtered) { image in
+                            ImageRowView(image: image, isSelected: selected?.id == image.id)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selected = image }
+                        }
+                    }
+                    .padding(12)
                 }
-                .listStyle(.inset)
+                .background(Theme.bg)
             }
         }
         .navigationTitle("Images")
@@ -187,9 +194,9 @@ struct ImageRowView: View {
 
     private var usageDotColor: Color {
         switch usageState {
-        case .running: return .green
-        case .stopped: return .orange
-        case .unused:  return Color(nsColor: .tertiaryLabelColor)
+        case .running: return Theme.accent
+        case .stopped: return Theme.warn
+        case .unused:  return Theme.text3
         }
     }
 
@@ -215,7 +222,7 @@ struct ImageRowView: View {
                 Circle()
                     .fill(usageDotColor)
                     .frame(width: 8, height: 8)
-                    .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
+                    .overlay(Circle().stroke(Theme.surface, lineWidth: 1.5))
                     .offset(x: 2, y: 2)
             }
             .frame(width: 32)
@@ -225,13 +232,14 @@ struct ImageRowView: View {
                 HStack(spacing: 6) {
                     Text(image.shortName)
                         .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.text)
                     if image.tag == "latest" {
                         Text(image.tag)
                             .font(.system(size: 11))
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color(nsColor: .controlBackgroundColor))
+                            .background(Theme.surface2)
                             .clipShape(RoundedRectangle(cornerRadius: 4))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Theme.text3)
                     } else {
                         Text(image.tag)
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
@@ -243,7 +251,7 @@ struct ImageRowView: View {
                 }
                 Text(image.shortDigest)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Theme.text3)
             }
 
             Spacer()
@@ -253,7 +261,7 @@ struct ImageRowView: View {
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.accent)
             }
             .buttonStyle(.plain)
             .help("Run container from this image")
@@ -264,13 +272,22 @@ struct ImageRowView: View {
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 12))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
             .help("Delete image")
             .accessibilityLabel("Delete \(image.shortName)")
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Theme.accentSoft : Theme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(isSelected ? Theme.accent : Theme.border, lineWidth: isSelected ? 1.5 : 1)
+                )
+        )
         .alert("Delete \"\(image.ref)\"?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 Task { await service.deleteImage(image.ref) }
@@ -323,7 +340,7 @@ struct PullImageSheet: View {
                     Task { await pull() }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(Theme.accent)
                 .disabled(ref.trimmingCharacters(in: .whitespaces).isEmpty || isPulling)
             }
 

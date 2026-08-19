@@ -81,10 +81,10 @@ struct ImageDetailView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "circle")
                                 .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Theme.text3)
                             Text("Not used by any container")
                                 .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.text2)
                         }
                     } else {
                         VStack(spacing: 6) {
@@ -98,11 +98,11 @@ struct ImageDetailView: View {
                                     Spacer()
                                     Text(container.state.label)
                                         .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.text2)
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(Color(nsColor: .controlBackgroundColor))
+                                .background(Theme.surface2)
                                 .clipShape(RoundedRectangle(cornerRadius: 7))
                             }
                         }
@@ -148,7 +148,7 @@ struct ImageDetailView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(.red)
+                    .tint(Theme.danger)
                     .disabled(!usingContainers.isEmpty)
                 }
                 .padding(.horizontal, 20)
@@ -187,23 +187,23 @@ struct ImageDetailView: View {
         if runningContainers.count > 0 {
             Label("\(runningContainers.count) running", systemImage: "circle.fill")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.accent)
                 .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Color.green.opacity(0.1))
+                .background(Theme.accentSoft)
                 .clipShape(Capsule())
         } else if stoppedContainers.count > 0 {
             Label("\(stoppedContainers.count) stopped", systemImage: "circle.fill")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warn)
                 .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Color.orange.opacity(0.1))
+                .background(Theme.warnSoft)
                 .clipShape(Capsule())
         } else {
             Label("Unused", systemImage: "circle")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                .foregroundStyle(Theme.text3)
                 .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(Theme.surface2)
                 .clipShape(Capsule())
         }
     }
@@ -212,9 +212,9 @@ struct ImageDetailView: View {
     private func tagBadge(_ text: String, color: Color) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .semibold, design: .monospaced))
-            .foregroundStyle(color == .secondary ? Color.secondary : color)
+            .foregroundStyle(color == .secondary ? Theme.text3 : color)
             .padding(.horizontal, 8).padding(.vertical, 3)
-            .background((color == .secondary ? Color(nsColor: .controlBackgroundColor) : color.opacity(0.12)))
+            .background((color == .secondary ? Theme.surface2 : color.opacity(0.12)))
             .clipShape(Capsule())
     }
 
@@ -222,7 +222,7 @@ struct ImageDetailView: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(Theme.text3)
             .textCase(.uppercase)
             .tracking(0.5)
     }
@@ -232,11 +232,11 @@ struct ImageDetailView: View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 70, alignment: .leading)
             Text(value.isEmpty ? "—" : value)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -247,11 +247,11 @@ struct ImageDetailView: View {
         HStack(alignment: .top) {
             Text(LocalizedStringKey(label))
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 70, alignment: .leading)
             Text(value.isEmpty ? "—" : value)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .textSelection(.enabled)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -265,10 +265,10 @@ struct ImageDetailView: View {
         HStack(spacing: 6) {
             Text(code)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .padding(.horizontal, 10).padding(.vertical, 7)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(Theme.surface2)
                 .clipShape(RoundedRectangle(cornerRadius: 7))
                 .textSelection(.enabled)
 

@@ -23,11 +23,11 @@ struct VolumeDetailView: View {
                 VStack(spacing: 14) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 18)
-                            .fill(Color.blue.opacity(0.12))
+                            .fill(Color(hex: "#D97706").opacity(0.14))
                             .frame(width: 72, height: 72)
                         Image(systemName: "externaldrive.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color(hex: "#D97706"))
                     }
 
                     VStack(spacing: 6) {
@@ -37,10 +37,10 @@ struct VolumeDetailView: View {
 
                         HStack(spacing: 8) {
                             if !volume.type.isEmpty {
-                                badge(volume.type, color: .blue)
+                                badge(volume.type, color: Color(hex: "#3B82F6"))
                             }
                             if !volume.driver.isEmpty {
-                                badge(volume.driver, color: .purple)
+                                badge(volume.driver, color: Color(hex: "#7C6FE0"))
                             }
                         }
                     }
@@ -71,15 +71,15 @@ struct VolumeDetailView: View {
 
                     Text("Use this volume when running a container by adding a mount:")
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.text2)
 
                     HStack(spacing: 6) {
                         Text("-v \(volume.name):/your/path")
                             .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Theme.text)
                             .padding(.horizontal, 10).padding(.vertical, 7)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(nsColor: .controlBackgroundColor))
+                            .background(Theme.surface2)
                             .clipShape(RoundedRectangle(cornerRadius: 7))
                             .textSelection(.enabled)
 
@@ -91,7 +91,7 @@ struct VolumeDetailView: View {
                         } label: {
                             Image(systemName: copied ? "checkmark" : "doc.on.doc")
                                 .font(.system(size: 12))
-                                .foregroundStyle(copied ? Color.green : Color(nsColor: .tertiaryLabelColor))
+                                .foregroundStyle(copied ? Theme.accent : Theme.text3)
                         }
                         .buttonStyle(.plain)
                         .help("Copy mount flag")
@@ -112,7 +112,7 @@ struct VolumeDetailView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(.red)
+                    .tint(Theme.danger)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -135,7 +135,7 @@ struct VolumeDetailView: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(Theme.text3)
             .textCase(.uppercase)
             .tracking(0.5)
     }
@@ -155,11 +155,11 @@ struct VolumeDetailView: View {
         HStack(alignment: .top) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.text2)
                 .frame(width: 60, alignment: .leading)
             Text(value)
                 .font(monospaced ? .system(size: 12, design: .monospaced) : .system(size: 12))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .textSelection(.enabled)
             Spacer()
         }
