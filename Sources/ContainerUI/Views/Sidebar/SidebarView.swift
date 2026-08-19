@@ -67,6 +67,7 @@ struct SidebarView: View {
                 daemonStatusCard
             }
             .padding(.bottom, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surface)
         }
         .navigationTitle("ContainerUI")
@@ -154,7 +155,7 @@ struct SidebarView: View {
             }
             .padding(11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, 10)
         case .running:
             statusCard(
@@ -193,9 +194,9 @@ struct SidebarView: View {
                 .truncationMode(.tail)
         }
         .padding(11)
-        .background(dotColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+        .background(dotColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(dotColor.opacity(0.4), lineWidth: 1)
         )
         .padding(.horizontal, 10)
