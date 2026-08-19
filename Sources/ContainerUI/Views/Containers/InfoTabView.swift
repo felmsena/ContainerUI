@@ -51,41 +51,44 @@ struct InfoTabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
 
                 // Info rows
-                ForEach(rows, id: \.key) { key, label, value in
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(label)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 64, alignment: .leading)
-                        Text(value)
-                            .font(.system(size: 12, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .multilineTextAlignment(.trailing)
-                        if key == "ID" || key == "IP" {
-                            Button {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(value, forType: .string)
-                                copiedKey = key
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedKey = nil }
-                            } label: {
-                                Image(systemName: copiedKey == key ? "checkmark" : "doc.on.doc")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(copiedKey == key ? Theme.accent : Theme.text3)
+                SectionCard(title: "Overview") {
+                    ForEach(Array(rows.enumerated()), id: \.element.key) { index, row in
+                        if index > 0 { Divider() }
+                        HStack(alignment: .center, spacing: 8) {
+                            Text(row.label)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.text2)
+                                .frame(width: 64, alignment: .leading)
+                            Text(row.value)
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(Theme.text)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .multilineTextAlignment(.trailing)
+                            if row.key == "ID" || row.key == "IP" {
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(row.value, forType: .string)
+                                    copiedKey = row.key
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedKey = nil }
+                                } label: {
+                                    Image(systemName: copiedKey == row.key ? "checkmark" : "doc.on.doc")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(copiedKey == row.key ? Theme.accent : Theme.text3)
+                                }
+                                .buttonStyle(.plain)
+                                .help(LocalizedStringKey("Copy \(row.label)"))
+                                .accessibilityLabel(copiedKey == row.key ? "Copied" : LocalizedStringKey("Copy \(row.label)"))
+                                .disabled(row.value == "—")
                             }
-                            .buttonStyle(.plain)
-                            .help(LocalizedStringKey("Copy \(label)"))
-                            .accessibilityLabel(copiedKey == key ? "Copied" : LocalizedStringKey("Copy \(label)"))
-                            .disabled(value == "—")
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    Divider().padding(.leading, 12)
                 }
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
 
                 // Inspect detail (mounts / env / ports / resources)
                 if let detail {
@@ -187,27 +190,23 @@ struct InfoTabView: View {
                             service.openShell(for: container.id)
                         } label: {
                             Label("Open shell", systemImage: "terminal")
-                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(BrandButtonStyle(kind: .secondary, fill: true))
 
                         HStack(spacing: 8) {
                             Button {
                                 Task { await service.restart(container.id) }
                             } label: {
                                 Label("Restart", systemImage: "arrow.clockwise")
-                                    .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(BrandButtonStyle(kind: .secondary, fill: true))
 
                             Button(role: .destructive) {
                                 Task { await service.stop(container.id) }
                             } label: {
                                 Label("Stop", systemImage: "stop.fill")
-                                    .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(.bordered)
-                            .tint(Theme.danger)
+                            .buttonStyle(BrandButtonStyle(kind: .destructive, fill: true))
                         }
 
                     } else {
@@ -215,10 +214,8 @@ struct InfoTabView: View {
                             Task { await service.start(container.id) }
                         } label: {
                             Label("Start container", systemImage: "play.fill")
-                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
+                        .buttonStyle(BrandButtonStyle(kind: .primary, fill: true))
                     }
                 }
                 .padding(12)

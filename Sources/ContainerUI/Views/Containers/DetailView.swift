@@ -19,17 +19,45 @@ struct DetailView: View {
     @State private var isPerformingFileAction = false
     @State private var fileActionError: String?
 
+    private var iconInfo: (symbol: String, color: Color) { imageIcon(for: container.image) }
+
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $tab) {
-                ForEach(DetailTab.allCases, id: \.self) { t in
-                    Text(LocalizedStringKey(t.rawValue)).tag(t)
-                        .disabled(t == .shell && !container.state.isRunning)
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(iconInfo.color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: iconInfo.symbol)
+                        .font(.system(size: 18))
+                        .foregroundStyle(iconInfo.color)
                 }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(container.id)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(container.image)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.text2)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .layoutPriority(1)
+
+                Spacer(minLength: 12)
+
+                BrandTabs(
+                    items: DetailTab.allCases.map {
+                        ($0, LocalizedStringKey($0.rawValue), $0 != .shell || container.state.isRunning)
+                    },
+                    selection: $tab
+                )
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
