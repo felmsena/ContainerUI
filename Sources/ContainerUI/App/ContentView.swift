@@ -140,6 +140,7 @@ struct ContentView: View {
         }
         .tint(Theme.accent)
         .background(Theme.bg)
+        .toolbarBackground(Theme.bg, for: .windowToolbar)
         }
         .animation(.easeOut(duration: 0.2), value: service.serviceError)
         .animation(.easeOut(duration: 0.2), value: service.availableUpdate)
