@@ -410,3 +410,17 @@
 "Build log — %@" = "Log de compilación — %@";
 "Last build — %@" = "Última compilación — %@";
 "Show %@ in Images" = "Ver %@ en Imágenes";
+
+/* Live logs */
+"All" = "Todas";
+"Lines to load" = "Líneas a cargar";
+"Filter…" = "Filtrar…";
+"Boot log" = "Log de arranque";
+"Show the VM boot log instead of the container's output" = "Mostrar el log de arranque de la VM en lugar de la salida del contenedor";
+"Follow" = "Seguir";
+"Stream new lines as they're written" = "Mostrar las líneas nuevas a medida que se escriben";
+"Waiting for output…" = "Esperando salida…";
+"5 min" = "5 min";
+"1 h" = "1 h";
+"1 day" = "1 día";
+"How far back to fetch" = "Cuánto tiempo hacia atrás cargar";

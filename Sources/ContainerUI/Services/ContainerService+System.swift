@@ -27,8 +27,13 @@ extension ContainerService {
         update(\.versionRows, v ?? [])
     }
 
-    func fetchSystemLogs() async -> String {
-        (try? await cli(CLI.systemLogs(last: nil))) ?? ""
+    /// `last` is a CLI duration ("5m", "1h", "1d").
+    func fetchSystemLogs(last: String) async throws -> String {
+        try await cli(CLI.systemLogs(last: last))
+    }
+
+    func followSystemLogs(last: String) -> ProcessStream {
+        ProcessRunner.stream([bin] + CLI.systemLogs(last: last, follow: true))
     }
 
     func startService() async {

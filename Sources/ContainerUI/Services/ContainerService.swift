@@ -287,8 +287,14 @@ final class ContainerService {
         toasts.removeAll { $0.id == id }
     }
 
-    func fetchLogs(for id: String, lines: Int = 200) async -> String {
-        (try? await cli(CLI.logs(id, lines: lines))) ?? ""
+    /// `lines: nil` fetches the whole log; `boot` the VM boot log.
+    func fetchLogs(for id: String, lines: Int?, boot: Bool = false) async throws -> String {
+        try await cli(CLI.logs(id, lines: lines, boot: boot))
+    }
+
+    /// Follows a container's log (`logs --follow`) line by line.
+    func followLogs(for id: String, lines: Int?, boot: Bool = false) -> ProcessStream {
+        ProcessRunner.stream([bin] + CLI.logs(id, lines: lines, follow: true, boot: boot))
     }
 
     /// Single-quotes `s` for safe use as one shell argument, escaping any
