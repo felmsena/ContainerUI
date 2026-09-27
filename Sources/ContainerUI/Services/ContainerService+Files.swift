@@ -5,11 +5,11 @@ extension ContainerService {
     /// `container copy` requires the container to be running (it copies via
     /// the live filesystem), the mirror image of `exportContainer` below.
     func copyFromContainer(_ id: String, remotePath: String, to localPath: String) async throws {
-        try await shell([bin, "copy", "\(id):\(remotePath)", localPath], timeout: nil)
+        try await cli(CLI.copy(from: "\(id):\(remotePath)", to: localPath), timeout: nil)
     }
 
     func copyToContainer(_ id: String, localPath: String, to remotePath: String) async throws {
-        try await shell([bin, "copy", localPath, "\(id):\(remotePath)"], timeout: nil)
+        try await cli(CLI.copy(from: localPath, to: "\(id):\(remotePath)"), timeout: nil)
     }
 
     /// `container export` requires the container to be stopped (it snapshots
@@ -17,6 +17,6 @@ extension ContainerService {
     /// container) — the CLI itself rejects this with "container is not
     /// stopped" otherwise.
     func exportContainer(_ id: String, to localPath: String) async throws {
-        try await shell([bin, "export", "-o", localPath, id], timeout: nil)
+        try await cli(CLI.export(id, to: localPath), timeout: nil)
     }
 }

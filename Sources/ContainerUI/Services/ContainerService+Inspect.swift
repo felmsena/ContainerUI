@@ -3,7 +3,7 @@ import Foundation
 extension ContainerService {
 
     func inspectContainer(_ id: String) async -> ContainerDetail? {
-        guard let output = try? await shell([bin, "inspect", id]),
+        guard let output = try? await cli(CLI.inspect(id)),
               let data = output.data(using: .utf8)
         else { return nil }
         return Self.parseContainerDetail(data)

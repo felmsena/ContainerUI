@@ -3,21 +3,18 @@ import Foundation
 extension ContainerService {
 
     func fetchRegistryLogins() async -> [RegistryLogin] {
-        let output = (try? await shell([bin, "registry", "list"])) ?? ""
+        let output = (try? await cli(CLI.registryList())) ?? ""
         return Self.parseRegistryList(output)
     }
 
     /// Logs in via `--password-stdin` so the password is piped to the
     /// process instead of appearing as a `login` argument.
     func registryLogin(server: String, username: String, password: String) async throws {
-        try await shell(
-            [bin, "registry", "login", "--username", username, "--password-stdin", server],
-            stdin: password
-        )
+        try await cli(CLI.registryLogin(server: server, username: username), stdin: password)
     }
 
     func registryLogout(server: String) async throws {
-        try await shell([bin, "registry", "logout", server])
+        try await cli(CLI.registryLogout(server))
     }
 
     // MARK: – Parsing

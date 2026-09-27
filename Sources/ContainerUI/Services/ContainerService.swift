@@ -105,7 +105,7 @@ final class ContainerService: ObservableObject {
         defer { isLoading = false }
         do {
             let listed = try await fetchJSONOrText(
-                args: [bin, "list", "--all"],
+                args: [bin] + CLI.list(),
                 jsonParse: Self.parseContainerListJSON,
                 textParse: Self.parseContainerList
             )
@@ -139,7 +139,7 @@ final class ContainerService: ObservableObject {
         daemonState = .starting
         serviceError = nil
         do {
-            try await shell([bin, "system", "start"], timeout: nil)
+            try await cli(CLI.systemStart(), timeout: nil)
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             await fetchContainers()
         } catch {
@@ -152,7 +152,7 @@ final class ContainerService: ObservableObject {
         daemonState = .starting  // reuse "transitioning" state for the spinner
         serviceError = nil
         do {
-            try await shell([bin, "system", "stop"])
+            try await cli(CLI.systemStop())
             containers = []
             daemonState = .notRunning
         } catch {
@@ -163,12 +163,12 @@ final class ContainerService: ObservableObject {
     }
 
     func start(_ id: String) async {
-        _ = try? await shell([bin, "start", id])
+        _ = try? await cli(CLI.start(id))
         await fetchContainers()
     }
 
     func stop(_ id: String) async {
-        _ = try? await shell([bin, "stop", id])
+        _ = try? await cli(CLI.stop(id))
         await fetchContainers()
     }
 
@@ -184,30 +184,28 @@ final class ContainerService: ObservableObject {
     }
 
     func restart(_ id: String) async {
-        _ = try? await shell([bin, "stop", id])
-        _ = try? await shell([bin, "start", id])
+        _ = try? await cli(CLI.stop(id))
+        _ = try? await cli(CLI.start(id))
         await fetchContainers()
     }
 
     func remove(_ id: String) async {
-        // Stop first if running, then remove
-        _ = try? await shell([bin, "stop", id])
-        _ = try? await shell([bin, "rm", id])
+        _ = try? await cli(CLI.delete(id))
         await fetchContainers()
     }
 
     func kill(_ id: String) async {
-        _ = try? await shell([bin, "kill", id])
+        _ = try? await cli(CLI.kill(id))
         await fetchContainers()
     }
 
     func pruneContainers() async {
-        _ = try? await shell([bin, "prune"])
+        _ = try? await cli(CLI.prune())
         await fetchContainers()
     }
 
     func fetchLogs(for id: String, lines: Int = 200) async -> String {
-        (try? await shell([bin, "logs", "-n", "\(lines)", id])) ?? ""
+        (try? await cli(CLI.logs(id, lines: lines))) ?? ""
     }
 
     /// Single-quotes `s` for safe use as one shell argument, escaping any
@@ -250,17 +248,8 @@ final class ContainerService: ObservableObject {
         }
     }
 
-    func runContainer(image: String, name: String?, ports: [(host: String, container: String)], volumes: [String] = [], memory: String, cpus: Int, env: [String]) async throws {
-        // --detach: without it `container run` stays attached until the
-        // container exits, so the call (and the Run sheet) never returned.
-        var args = [bin, "run", "--detach"]
-        if let name { args += ["--name", name] }
-        args += ["-m", memory, "--cpus", "\(cpus)"]
-        for p in ports   { args += ["-p", "\(p.host):\(p.container)"] }
-        for v in volumes { args += ["-v", v] }
-        for e in env     { args += ["-e", e] }
-        args.append(image)
-        try await shell(args, timeout: nil)  // may pull the image first
+    func runContainer(_ spec: RunSpec) async throws {
+        try await cli(spec.arguments, timeout: nil)  // may pull the image first
         await fetchContainers()
     }
 
@@ -339,6 +328,12 @@ final class ContainerService: ObservableObject {
     /// `CLIError` on a non-zero exit, timeout or cancellation (cancelling the
     /// calling task terminates the process). Pass `timeout: nil` for
     /// commands that legitimately run long (pulls, `run` that pulls first).
+    /// `shell` with the resolved `container` binary prepended.
+    @discardableResult
+    func cli(_ args: [String], stdin: String? = nil, timeout: TimeInterval? = ProcessRunner.defaultTimeout) async throws -> String {
+        try await shell([bin] + args, stdin: stdin, timeout: timeout)
+    }
+
     @discardableResult
     func shell(_ args: [String], stdin: String? = nil, timeout: TimeInterval? = ProcessRunner.defaultTimeout) async throws -> String {
         let output = try await runner.run(args, stdin: stdin, timeout: timeout).get()

@@ -32,20 +32,17 @@ extension ContainerService {
         }
 
         let network = Self.composeNetworkName(group: group)
-        _ = try? await shell([bin, "network", "create", network])
+        _ = try? await cli(CLI.networkCreate(network))
 
         for service in ordered {
             let name = Self.composeContainerName(group: group, service: service.name)
             composeState[name] = .starting
 
-            var args = [bin, "run", "-d", "--name", name, "--network", network]
-            for port in service.ports { args += ["-p", port] }
-            for env in service.env { args += ["-e", env] }
-            for volume in service.volumes { args += ["-v", volume] }
-            args.append(service.image)
-
+            let spec = RunSpec(image: service.image, name: name, memory: nil, cpus: nil,
+                               ports: service.ports, volumes: service.volumes, env: service.env,
+                               network: network)
             do {
-                try await shell(args, timeout: nil)
+                try await cli(spec.arguments, timeout: nil)
                 composeState[name] = .running
             } catch {
                 composeState[name] = .failed(error.localizedDescription)
@@ -70,8 +67,7 @@ extension ContainerService {
         for service in ordered {
             let name = Self.composeContainerName(group: group, service: service.name)
             composeState[name] = .stopping
-            _ = try? await shell([bin, "stop", name])
-            _ = try? await shell([bin, "rm", name])
+            _ = try? await cli(CLI.delete(name))
             composeState[name] = .stopped
         }
 

@@ -282,39 +282,25 @@ struct RunContainerSheet: View {
         }
     }
 
-    private var commandPreview: String {
-        var parts = [service.bin, "run", "--detach"]
-        if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-            parts += ["--name", name.trimmingCharacters(in: .whitespaces)]
-        }
-        parts += ["-m", memory, "--cpus", "\(cpus)"]
-        for p in ports where !p.host.isEmpty && !p.container.isEmpty {
-            parts += ["-p", "\(p.host):\(p.container)"]
-        }
-        for v in volumeMounts where !v.source.isEmpty && !v.target.isEmpty {
-            parts += ["-v", "\(v.source):\(v.target)"]
-        }
-        for e in envVars where !e.key.isEmpty {
-            parts += ["-e", "\(e.key)=\(e.value)"]
-        }
-        let ref = imageRef.trimmingCharacters(in: .whitespaces)
-        if !ref.isEmpty { parts.append(ref) }
-        return parts.joined(separator: " ")
+    private var spec: RunSpec {
+        RunSpec(
+            image: imageRef,
+            name: name,
+            memory: memory,
+            cpus: cpus,
+            ports: ports.filter { !$0.host.isEmpty && !$0.container.isEmpty }.map { "\($0.host):\($0.container)" },
+            volumes: volumeMounts.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map { "\($0.source):\($0.target)" },
+            env: envVars.filter { !$0.key.isEmpty }.map { "\($0.key)=\($0.value)" }
+        )
     }
+
+    private var commandPreview: String { spec.commandLine(bin: service.bin) }
 
     private func run() async {
         isRunning = true
         error = nil
         do {
-            try await service.runContainer(
-                image: imageRef.trimmingCharacters(in: .whitespaces),
-                name: name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name.trimmingCharacters(in: .whitespaces),
-                ports: ports.filter { !$0.host.isEmpty && !$0.container.isEmpty }.map { (host: $0.host, container: $0.container) },
-                volumes: volumeMounts.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map { "\($0.source):\($0.target)" },
-                memory: memory,
-                cpus: cpus,
-                env: envVars.filter { !$0.key.isEmpty }.map { "\($0.key)=\($0.value)" }
-            )
+            try await service.runContainer(spec)
             dismiss()
         } catch {
             self.error = error.localizedDescription

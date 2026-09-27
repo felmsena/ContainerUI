@@ -7,7 +7,7 @@ extension ContainerService {
     /// discards stdout on a non-zero exit, since a terminal-like UI needs to
     /// show output either way. Cancelling the calling task kills the command.
     func exec(_ id: String, args: [String]) async -> ProcessOutput {
-        switch await runner.run([bin, "exec", id] + args, stdin: nil, timeout: nil) {
+        switch await runner.run([bin] + CLI.exec(id, args), stdin: nil, timeout: nil) {
         case .success(let output): return output
         case .failure(let error): return ProcessOutput(stdout: "", stderr: error.localizedDescription, exitCode: -1)
         }

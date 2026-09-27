@@ -4,24 +4,24 @@ extension ContainerService {
 
     func fetchVolumes() async {
         volumes = (try? await fetchJSONOrText(
-            args: [bin, "volume", "ls"],
+            args: [bin] + CLI.volumeList(),
             jsonParse: Self.parseVolumeListJSON,
             textParse: Self.parseVolumeList
         )) ?? []
     }
 
     func createVolume(_ name: String) async throws {
-        try await shell([bin, "volume", "create", name])
+        try await cli(CLI.volumeCreate(name))
         await fetchVolumes()
     }
 
     func deleteVolume(_ name: String) async {
-        _ = try? await shell([bin, "volume", "rm", name])
+        _ = try? await cli(CLI.volumeDelete(name))
         await fetchVolumes()
     }
 
     func pruneVolumes() async {
-        _ = try? await shell([bin, "volume", "prune"])
+        _ = try? await cli(CLI.volumePrune())
         await fetchVolumes()
     }
 

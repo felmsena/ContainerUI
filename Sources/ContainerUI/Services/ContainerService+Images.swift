@@ -4,7 +4,7 @@ extension ContainerService {
 
     func fetchImages() async {
         images = (try? await fetchJSONOrText(
-            args: [bin, "image", "ls"],
+            args: [bin] + CLI.imageList(),
             jsonParse: Self.parseImageListJSON,
             textParse: Self.parseImageList
         )) ?? []
@@ -12,7 +12,7 @@ extension ContainerService {
 
     func pullImage(_ ref: String) async throws {
         do {
-            try await shell([bin, "image", "pull", ref], timeout: nil)
+            try await cli(CLI.imagePull(ref), timeout: nil)
         } catch {
             notifyPullFinished(ref: ref, success: false)
             throw error
@@ -22,7 +22,7 @@ extension ContainerService {
     }
 
     func deleteImage(_ ref: String) async {
-        _ = try? await shell([bin, "image", "rm", ref])
+        _ = try? await cli(CLI.imageDelete(ref))
         await fetchImages()
     }
 
@@ -31,7 +31,7 @@ extension ContainerService {
     /// what the toolbar shows and whose `--all` would also delete the
     /// system images Apple Container needs.
     func removeImages(_ refs: [String]) async {
-        for ref in refs { _ = try? await shell([bin, "image", "rm", ref]) }
+        for ref in refs { _ = try? await cli(CLI.imageDelete(ref)) }
         await fetchImages()
     }
 

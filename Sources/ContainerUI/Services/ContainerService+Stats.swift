@@ -19,7 +19,7 @@ extension ContainerService {
     /// rolling 60-sample history. No-ops silently if the CLI call fails
     /// (e.g. the container just stopped).
     func pollStats(for id: String) async {
-        guard let output = try? await shell([bin, "stats", "--format", "json", "--no-stream", id]),
+        guard let output = try? await cli(CLI.stats([id])),
               let data = output.data(using: .utf8),
               let raw = Self.parseRawStats(data)
         else { return }
