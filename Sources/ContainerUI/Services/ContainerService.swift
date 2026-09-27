@@ -10,73 +10,84 @@ enum DaemonState {
     case running
 }
 
+/// Owns all data read from the `container` CLI. `@Observable` (rather than
+/// `ObservableObject`) so a view only re-renders when a property it
+/// actually reads changes — with `ObservableObject` every poll re-rendered
+/// the whole window. Setters below also skip no-op assignments, since
+/// Observation notifies even when a value is set to itself.
 @MainActor
-final class ContainerService: ObservableObject {
+@Observable
+final class ContainerService {
     // Containers (user containers only — see `builderContainer`)
-    @Published var containers: [ContainerInfo] = []
-    @Published var builderContainer: ContainerInfo?
-    @Published var isLoading = false
-    @Published var serviceError: String?
-    @Published var daemonState: DaemonState = .unknown
-    @Published var showCommandPalette = false
-    @Published var showRunSheet = false
-    @Published var sidebarItem: SidebarItem = .containers
+    var containers: [ContainerInfo] = []
+    var builderContainer: ContainerInfo?
+    /// True only until the first container list arrives; background polls
+    /// don't flip it, so nothing flickers every refresh.
+    var isLoading = true
+    var serviceError: String?
+    var daemonState: DaemonState = .unknown
 
     // Images
-    @Published var images: [ImageInfo] = []
+    var images: [ImageInfo] = []
 
     // Volumes
-    @Published var volumes: [VolumeInfo] = []
+    var volumes: [VolumeInfo] = []
 
     // System
-    @Published var systemStatus: SystemStatusInfo?
-    @Published var systemDf: [SystemDfRow] = []
-    @Published var versionRows: [VersionRow] = []
+    var systemStatus: SystemStatusInfo?
+    var systemDf: [SystemDfRow] = []
+    var versionRows: [VersionRow] = []
 
     // Stats (per-container id)
-    @Published var latestStats: [String: ContainerStats] = [:]
-    @Published var statsHistory: [String: [ContainerStatsSample]] = [:]
-    var lastRawStats: [String: RawStatsSample] = [:]
+    var latestStats: [String: ContainerStats] = [:]
+    var statsHistory: [String: [ContainerStatsSample]] = [:]
+    @ObservationIgnored var lastRawStats: [String: RawStatsSample] = [:]
 
     // Updates
-    @Published var availableUpdate: GitHubReleaseInfo?
+    var availableUpdate: GitHubReleaseInfo?
 
     // Compose-lite (per compose-container-name, e.g. "<group>-<service>")
-    @Published var composeState: [String: ComposeServiceState] = [:]
+    var composeState: [String: ComposeServiceState] = [:]
 
     /// Path of the `container` CLI in use (see `ContainerBinary`). When it
     /// isn't installed this is the first default location, for display.
-    @Published private(set) var bin: String = ContainerBinary.candidates[0]
-    @Published private(set) var isBinaryInstalled = false
+    private(set) var bin: String = ContainerBinary.candidates[0]
+    private(set) var isBinaryInstalled = false
 
-    let runner: CommandRunning
+    @ObservationIgnored let runner: CommandRunning
     /// `fetchJSONOrText` command keys whose `--format json` output failed to
     /// decode, so later polls go straight to the text form.
-    var jsonUnsupported: Set<String> = []
+    @ObservationIgnored var jsonUnsupported: Set<String> = []
 
-    private var refreshTask: Task<Void, Never>?
-    private var updateCheckTask: Task<Void, Never>?
-    private var previousRunningIds: Set<String> = []
-    private var hasInitialFetch = false
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var updateCheckTask: Task<Void, Never>?
+    @ObservationIgnored private var previousRunningIds: Set<String> = []
+    @ObservationIgnored private var hasInitialFetch = false
 
-    init(runner: CommandRunning = ProcessRunner(), startBackgroundWork: Bool = true) {
+    @ObservationIgnored private let fixedBinary: String?
+
+    /// `binary` pins the CLI path (tests use it with a fake `runner`);
+    /// otherwise it's resolved via `ContainerBinary`.
+    init(runner: CommandRunning = ProcessRunner(), binary: String? = nil, startBackgroundWork: Bool = true) {
         self.runner = runner
+        self.fixedBinary = binary
         reloadBinaryPath()
         guard startBackgroundWork else { return }
         requestNotificationPermission()
         startAutoRefresh()
         startUpdateCheckLoop()
     }
-    deinit {
-        refreshTask?.cancel()
-        updateCheckTask?.cancel()
+    /// Assigns only when the value actually changed, so observers of an
+    /// unchanged property aren't invalidated on every poll.
+    func update<T: Equatable>(_ keyPath: ReferenceWritableKeyPath<ContainerService, T>, _ value: T) {
+        if self[keyPath: keyPath] != value { self[keyPath: keyPath] = value }
     }
 
     /// Re-resolves the CLI location, e.g. after the user picks a custom path.
     func reloadBinaryPath() {
-        let resolved = ContainerBinary.resolve()
-        bin = resolved ?? ContainerBinary.candidates[0]
-        isBinaryInstalled = resolved != nil
+        let resolved = fixedBinary ?? ContainerBinary.resolve()
+        update(\.bin, resolved ?? ContainerBinary.candidates[0])
+        update(\.isBinaryInstalled, resolved != nil)
         jsonUnsupported = []
     }
 
@@ -95,14 +106,14 @@ final class ContainerService: ObservableObject {
     func fetchContainers() async {
         if !isBinaryInstalled { reloadBinaryPath() }  // picks up a fresh install
         guard isBinaryInstalled else {
-            daemonState = .notInstalled
-            serviceError = nil
-            containers = []
+            update(\.daemonState, .notInstalled)
+            update(\.serviceError, nil)
+            update(\.containers, [])
+            update(\.isLoading, false)
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        defer { update(\.isLoading, false) }
         do {
             let listed = try await fetchJSONOrText(
                 args: [bin] + CLI.list(),
@@ -111,7 +122,7 @@ final class ContainerService: ObservableObject {
             )
             let newContainers = listed.filter { !$0.isBuilder }
             let builder = listed.first(where: \.isBuilder)
-            if builderContainer != builder { builderContainer = builder }
+            update(\.builderContainer, builder)
 
             if hasInitialFetch {
                 let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
@@ -121,16 +132,17 @@ final class ContainerService: ObservableObject {
 
             previousRunningIds = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
             hasInitialFetch = true
-            containers = newContainers
-            serviceError = nil
-            if daemonState != .running { daemonState = .running }
+            update(\.containers, newContainers)
+            update(\.serviceError, nil)
+            update(\.daemonState, .running)
         } catch {
             if case CLIError.daemonNotRunning = error {
-                daemonState = .notRunning
-                serviceError = nil
-                containers = []
+                update(\.daemonState, .notRunning)
+                update(\.serviceError, nil)
+                update(\.containers, [])
+                update(\.builderContainer, nil)
             } else {
-                serviceError = error.localizedDescription
+                update(\.serviceError, error.localizedDescription)
             }
         }
     }
@@ -172,14 +184,14 @@ final class ContainerService: ObservableObject {
         await fetchContainers()
     }
 
-    /// Refreshes whichever sidebar section is currently on screen (⌘R).
-    func refreshCurrentSection() async {
-        switch sidebarItem {
+    /// Refreshes the given sidebar section (⌘R refreshes the visible one).
+    func refresh(_ section: SidebarItem) async {
+        switch section {
         case .containers: await fetchContainers()
         case .images:     await fetchImages()
         case .volumes:    await fetchVolumes()
         case .stats, .logs: await fetchSystemInfo()
-        case .registry, .build, .groups, .settings: break
+        case .registry, .build, .groups, .settings: await fetchContainers()
         }
     }
 

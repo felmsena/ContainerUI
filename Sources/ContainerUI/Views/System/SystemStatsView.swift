@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SystemStatsView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var isLoading = false
 
     var body: some View {

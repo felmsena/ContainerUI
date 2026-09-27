@@ -2,7 +2,7 @@ import SwiftUI
 
 struct VolumeDetailView: View {
     let volume: VolumeInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var showDeleteAlert = false
     @State private var copied = false
 

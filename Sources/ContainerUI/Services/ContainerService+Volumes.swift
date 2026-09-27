@@ -3,11 +3,11 @@ import Foundation
 extension ContainerService {
 
     func fetchVolumes() async {
-        volumes = (try? await fetchJSONOrText(
+        update(\.volumes, (try? await fetchJSONOrText(
             args: [bin] + CLI.volumeList(),
             jsonParse: Self.parseVolumeListJSON,
             textParse: Self.parseVolumeList
-        )) ?? []
+        )) ?? [])
     }
 
     func createVolume(_ name: String) async throws {

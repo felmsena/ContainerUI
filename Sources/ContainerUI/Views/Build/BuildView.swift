@@ -2,9 +2,8 @@ import SwiftUI
 import AppKit
 
 struct BuildView: View {
-    @Binding var sidebarItem: SidebarItem
-    @Binding var selectedImage: ImageInfo?
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
 
     @State private var contextDir: URL?
     @State private var detectedFile: String?
@@ -190,8 +189,8 @@ struct BuildView: View {
             service.notifyBuildFinished(tag: trimmedTag, success: true)
             await service.fetchImages()
             if let built = service.images.first(where: { imageMatches(containerImage: trimmedTag, image: $0) }) {
-                selectedImage = built
-                sidebarItem = .images
+                app.selectedImage = built
+                app.sidebarItem = .images
             }
         } catch {
             self.error = error.localizedDescription

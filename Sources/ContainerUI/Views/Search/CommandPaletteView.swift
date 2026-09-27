@@ -23,12 +23,8 @@ private struct SearchResult: Identifiable {
 /// volumes arrays (no new fetch) and navigates on selection by setting the
 /// sidebar section plus the matching selection binding in `ContentView`.
 struct CommandPaletteView: View {
-    @EnvironmentObject var service: ContainerService
-    @Binding var isPresented: Bool
-    @Binding var sidebarItem: SidebarItem
-    @Binding var selectedContainer: ContainerInfo?
-    @Binding var selectedImage: ImageInfo?
-    @Binding var selectedVolume: VolumeInfo?
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
 
     @State private var query = ""
     @State private var selectedIndex = 0
@@ -59,7 +55,7 @@ struct CommandPaletteView: View {
         ZStack {
             Color.black.opacity(0.25)
                 .ignoresSafeArea()
-                .onTapGesture { isPresented = false }
+                .onTapGesture { app.showCommandPalette = false }
 
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
@@ -126,7 +122,7 @@ struct CommandPaletteView: View {
             .frame(maxHeight: .infinity, alignment: .top)
         }
         .onKeyPress(.escape) {
-            isPresented = false
+            app.showCommandPalette = false
             return .handled
         }
         .onKeyPress(.upArrow) {
@@ -177,15 +173,15 @@ struct CommandPaletteView: View {
     private func select(_ result: SearchResult) {
         switch result.kind {
         case .container:
-            selectedContainer = service.containers.first { $0.id == String(result.id.dropFirst(2)) }
-            sidebarItem = .containers
+            app.selectedContainer = service.containers.first { $0.id == String(result.id.dropFirst(2)) }
+            app.sidebarItem = .containers
         case .image:
-            selectedImage = service.images.first { $0.id == String(result.id.dropFirst(2)) }
-            sidebarItem = .images
+            app.selectedImage = service.images.first { $0.id == String(result.id.dropFirst(2)) }
+            app.sidebarItem = .images
         case .volume:
-            selectedVolume = service.volumes.first { $0.id == String(result.id.dropFirst(2)) }
-            sidebarItem = .volumes
+            app.selectedVolume = service.volumes.first { $0.id == String(result.id.dropFirst(2)) }
+            app.sidebarItem = .volumes
         }
-        isPresented = false
+        app.showCommandPalette = false
     }
 }

@@ -18,13 +18,13 @@ extension ContainerService {
         let (s, d, v) = await (statusJSONOut, dfRows, versionRowsOut)
 
         if let s, let data = s.data(using: .utf8), let parsed = Self.parseSystemStatusJSON(data) {
-            systemStatus = parsed
+            update(\.systemStatus, parsed)
         } else {
             let textOut = (try? await cli(CLI.systemStatus())) ?? ""
-            systemStatus = Self.parseSystemStatus(textOut)
+            update(\.systemStatus, Self.parseSystemStatus(textOut))
         }
-        systemDf    = d ?? []
-        versionRows = v ?? []
+        update(\.systemDf, d ?? [])
+        update(\.versionRows, v ?? [])
     }
 
     func fetchSystemLogs() async -> String {

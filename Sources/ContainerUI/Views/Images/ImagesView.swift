@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ImagesView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Binding var selected: ImageInfo?
     @State private var searchText = ""
     @State private var showPullSheet = false
@@ -193,9 +193,9 @@ func imageIcon(for name: String) -> (symbol: String, color: Color) {
 struct ImageRowView: View {
     let image: ImageInfo
     var isSelected: Bool = false
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showDeleteAlert = false
-    @State private var showRunSheet = false
 
     private var iconInfo: (symbol: String, color: Color) {
         imageIcon(for: image.name)
@@ -274,7 +274,7 @@ struct ImageRowView: View {
             Spacer()
 
             Button {
-                showRunSheet = true
+                app.runContainer(RunSpec(image: image.ref))
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
@@ -313,19 +313,12 @@ struct ImageRowView: View {
         } message: {
             Text("This will remove the image from local storage.")
         }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(imageRef: image.ref,
-                              defaultPorts: [],
-                              defaultMemory: "512M",
-                              defaultEnv: [])
-                .environmentObject(service)
-        }
     }
 }
 
 struct PullImageSheet: View {
     @Binding var isPresented: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var ref = ""
     @State private var isPulling = false
     @State private var error: String?

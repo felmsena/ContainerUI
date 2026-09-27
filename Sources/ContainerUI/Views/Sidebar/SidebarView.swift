@@ -41,7 +41,7 @@ extension SidebarItem {
 
 struct SidebarView: View {
     @Binding var selected: SidebarItem
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var runningCount: Int {
         service.containers.filter { $0.state.isRunning }.count

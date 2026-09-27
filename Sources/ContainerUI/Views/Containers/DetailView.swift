@@ -10,7 +10,7 @@ enum DetailTab: String, CaseIterable {
 
 struct DetailView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var tab: DetailTab = .info
 
     @State private var showCopyFromSheet = false

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct VolumesView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Binding var selected: VolumeInfo?
     @State private var showCreateSheet = false
     @State private var showPruneAlert = false
@@ -74,7 +74,7 @@ struct VolumesView: View {
 struct VolumeRowView: View {
     let volume: VolumeInfo
     let isSelected: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var showDeleteAlert = false
 
     var body: some View {
@@ -143,7 +143,7 @@ struct VolumeRowView: View {
 
 struct CreateVolumeSheet: View {
     @Binding var isPresented: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var name = ""
     @State private var isCreating = false
     @State private var error: String?

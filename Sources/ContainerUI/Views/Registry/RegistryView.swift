@@ -28,7 +28,8 @@ private struct HubRepoDetail: Codable {
 
 struct RegistryView: View {
     @Binding var selectedEntry: RegistryEntry?
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var mode: Mode = .browse
     @State private var categories: [RegistryCategory] = curatedCategories
     @State private var isLoadingHub = false
@@ -37,8 +38,6 @@ struct RegistryView: View {
     @State private var searchResults: [HubRepo] = []
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
-    @State private var runEntry: RegistryEntry?
-    @State private var runRef: String?
 
     enum Mode: String, CaseIterable { case browse = "Featured"; case search = "Search" }
 
@@ -63,20 +62,6 @@ struct RegistryView: View {
         }
         .navigationTitle("Registry")
         .task { await loadHubData() }
-        .sheet(item: $runEntry) { entry in
-            RunContainerSheet(imageRef: entry.fullRef,
-                              defaultPorts: entry.defaultPorts,
-                              defaultMemory: entry.defaultMemory,
-                              defaultEnv: entry.defaultEnv)
-                .environmentObject(service)
-        }
-        .sheet(item: Binding(
-            get: { runRef.map { RefWrapper(value: $0) } },
-            set: { runRef = $0?.value }
-        )) { wrapper in
-            RunContainerSheet(imageRef: wrapper.value, defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
-        }
     }
 
     // MARK: Browse
@@ -107,7 +92,7 @@ struct RegistryView: View {
                                     } onPull: {
                                         Task { try? await service.pullImage(entry.fullRef) }
                                     } onRun: {
-                                        runEntry = entry
+                                        app.runContainer(entry.runSpec)
                                     }
                                 }
                             }
@@ -180,7 +165,7 @@ struct RegistryView: View {
                         HubRepoRow(repo: repo) {
                             Task { try? await service.pullImage(repo.repoName) }
                         } onRun: {
-                            runRef = repo.repoName
+                            app.runContainer(RunSpec(image: repo.repoName))
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { selectedEntry = hubRepoToEntry(repo) }
@@ -317,7 +302,7 @@ struct RegistryCard: View {
     let onSelect: () -> Void
     let onPull: () -> Void
     let onRun: () -> Void
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var isAlreadyPulled: Bool {
         service.images.contains { $0.name == entry.image }
@@ -471,11 +456,4 @@ struct HubRepoRow: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-// MARK: - Helpers
-
-private struct RefWrapper: Identifiable {
-    let id = UUID()
-    let value: String
 }

@@ -3,11 +3,11 @@ import Foundation
 extension ContainerService {
 
     func fetchImages() async {
-        images = (try? await fetchJSONOrText(
+        update(\.images, (try? await fetchJSONOrText(
             args: [bin] + CLI.imageList(),
             jsonParse: Self.parseImageListJSON,
             textParse: Self.parseImageList
-        )) ?? []
+        )) ?? [])
     }
 
     func pullImage(_ ref: String) async throws {

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LogsTabView: View {
     let containerId: String
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var logs = ""
     @State private var isLoading = false
     @State private var lineCount = 100

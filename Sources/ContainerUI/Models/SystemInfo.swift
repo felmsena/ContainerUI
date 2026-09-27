@@ -1,6 +1,6 @@
 import Foundation
 
-struct SystemStatusInfo {
+struct SystemStatusInfo: Equatable {
     let status: String
     let appRoot: String
     let installRoot: String
@@ -14,7 +14,7 @@ struct SystemStatusInfo {
     var isRunning: Bool { status == "running" }
 }
 
-struct SystemDfRow: Identifiable {
+struct SystemDfRow: Identifiable, Equatable {
     var id: String { type }
     let type: String
     let total: String
@@ -23,7 +23,7 @@ struct SystemDfRow: Identifiable {
     let reclaimable: String
 }
 
-struct VersionRow: Identifiable {
+struct VersionRow: Identifiable, Equatable {
     var id: String { component }
     let component: String
     let version: String

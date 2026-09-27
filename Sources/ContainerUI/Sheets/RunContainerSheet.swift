@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct RunContainerSheet: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Environment(\.dismiss) private var dismiss
 
-    @State var imageRef: String
-    @State private var name = ""
+    @State private var imageRef: String
+    @State private var name: String
     @State private var ports: [PortMapping]
     @State private var memory: String
-    @State private var cpus = 1
+    @State private var cpus: Int
     @State private var envVars: [EnvVar]
     @State private var volumeMounts: [VolumeMount] = []
     @State private var isRunning = false
@@ -17,14 +17,16 @@ struct RunContainerSheet: View {
     private let memoryOptions = ["256M", "512M", "1G", "2G", "4G", "8G", "16G"]
     private let cpuOptions = Array(1...8)
 
-    init(imageRef: String,
-         defaultPorts: [(String, String)],
-         defaultMemory: String,
-         defaultEnv: [String]) {
-        _imageRef = State(initialValue: imageRef)
-        _ports = State(initialValue: defaultPorts.map { PortMapping(host: $0.0, container: $0.1) })
-        _memory = State(initialValue: defaultMemory)
-        _envVars = State(initialValue: defaultEnv.map { raw in
+    init(spec: RunSpec) {
+        _imageRef = State(initialValue: spec.image)
+        _name = State(initialValue: spec.name)
+        _ports = State(initialValue: spec.ports.map { raw in
+            let parts = raw.split(separator: ":", maxSplits: 1).map(String.init)
+            return PortMapping(host: parts.first ?? "", container: parts.count > 1 ? parts[1] : "")
+        })
+        _memory = State(initialValue: spec.memory ?? "512M")
+        _cpus = State(initialValue: spec.cpus ?? 1)
+        _envVars = State(initialValue: spec.env.map { raw in
             let parts = raw.components(separatedBy: "=")
             return EnvVar(key: parts.first ?? "", value: parts.dropFirst().joined(separator: "="))
         })

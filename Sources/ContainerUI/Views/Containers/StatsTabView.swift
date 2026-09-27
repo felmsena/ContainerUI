@@ -3,7 +3,7 @@ import Charts
 
 struct StatsTabView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var stats: ContainerStats? { service.latestStats[container.id] }
     private var history: [ContainerStatsSample] { service.statsHistory[container.id] ?? [] }

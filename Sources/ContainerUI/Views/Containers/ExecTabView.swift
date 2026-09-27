@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ExecTabView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     @State private var commandText = ""
     @State private var entries: [ExecEntry] = []

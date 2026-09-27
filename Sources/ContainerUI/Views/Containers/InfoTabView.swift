@@ -2,14 +2,14 @@ import SwiftUI
 
 struct InfoTabView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var customPort = ""
     @State private var copiedKey: String?
     @State private var detail: ContainerDetail?
 
     /// `key` is a stable, non-localized identifier used for copy-button logic;
     /// `label` is the localized display text.
-    private var rows: [(key: String, label: String, value: String)] {
+    private func rows(at now: Date) -> [(key: String, label: String, value: String)] {
         [
             ("ID",     String(localized: "ID"),     container.id),
             ("Image",  String(localized: "Image"),  container.image),
@@ -18,7 +18,7 @@ struct InfoTabView: View {
             ("IP",     String(localized: "IP"),     container.ip.isEmpty ? "—" : container.ip),
             ("CPUs",   String(localized: "CPUs"),   "\(container.cpus)"),
             ("Memory", String(localized: "Memory"), container.memory),
-            ("Uptime", String(localized: "Uptime"), container.state.isRunning ? container.uptimeDisplay : "—"),
+            ("Uptime", String(localized: "Uptime"), container.state.isRunning ? container.uptimeDisplay(at: now) : "—"),
         ]
     }
 
@@ -54,8 +54,9 @@ struct InfoTabView: View {
             VStack(alignment: .leading, spacing: 12) {
 
                 // Info rows
+                TimelineView(.periodic(from: .now, by: 1)) { context in
                 SectionCard(title: "Overview") {
-                    ForEach(Array(rows.enumerated()), id: \.element.key) { index, row in
+                    ForEach(Array(rows(at: context.date).enumerated()), id: \.element.key) { index, row in
                         if index > 0 { Divider() }
                         HStack(alignment: .center, spacing: 8) {
                             Text(row.label)
@@ -86,6 +87,7 @@ struct InfoTabView: View {
                             }
                         }
                     }
+                }
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 12)

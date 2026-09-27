@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var running: [ContainerInfo] {
         service.containers.filter { $0.state.isRunning }
@@ -126,7 +126,7 @@ struct MenuBarView: View {
 
 struct MenuBarContainerRow: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var isHovering = false
 
     var body: some View {
@@ -148,9 +148,11 @@ struct MenuBarContainerRow: View {
             Spacer()
 
             if container.state.isRunning {
-                Text(container.uptimeDisplay)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(container.uptimeDisplay(at: context.date))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
 
                 Button {
                     Task { await service.stop(container.id) }

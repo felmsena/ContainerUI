@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GroupDetailView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     let fileURL: URL
 
     @State private var text: String = ""

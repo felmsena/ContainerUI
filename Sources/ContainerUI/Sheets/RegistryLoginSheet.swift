@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RegistryLoginSheet: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Environment(\.dismiss) private var dismiss
 
     @State private var server = ""

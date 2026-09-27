@@ -2,8 +2,8 @@ import SwiftUI
 
 struct RegistryDetailView: View {
     let entry: RegistryEntry
-    @EnvironmentObject var service: ContainerService
-    @State private var showRunSheet = false
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var isPulling = false
     @State private var pullError: String?
     @State private var pullTask: Task<Void, Never>?
@@ -177,7 +177,7 @@ struct RegistryDetailView: View {
                     .disabled(isAlreadyPulled && !isPulling)
 
                     Button {
-                        showRunSheet = true
+                        app.runContainer(entry.runSpec)
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.fill")
@@ -193,15 +193,6 @@ struct RegistryDetailView: View {
         }
         .navigationTitle(entry.name)
         .task { await service.fetchImages() }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(
-                imageRef: entry.fullRef,
-                defaultPorts: entry.defaultPorts,
-                defaultMemory: entry.defaultMemory,
-                defaultEnv: entry.defaultEnv
-            )
-            .environmentObject(service)
-        }
     }
 
     // MARK: – Helpers

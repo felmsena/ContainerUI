@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ImageDetailView: View {
     let image: ImageInfo
-    @EnvironmentObject var service: ContainerService
-    @State private var showRunSheet = false
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showDeleteAlert = false
 
     private var iconInfo: (symbol: String, color: Color) { imageIcon(for: image.name) }
@@ -127,7 +127,7 @@ struct ImageDetailView: View {
                 // Actions
                 HStack(spacing: 10) {
                     Button {
-                        showRunSheet = true
+                        app.runContainer(RunSpec(image: image.ref))
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.fill")
@@ -168,10 +168,6 @@ struct ImageDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will remove the image from local storage.")
-        }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(imageRef: image.ref, defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
         }
     }
 

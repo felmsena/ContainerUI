@@ -3,7 +3,7 @@ import SwiftUI
 struct ContainerCardView: View {
     let container: ContainerInfo
     let isSelected: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var showRemoveAlert = false
     @State private var showKillAlert = false
 
@@ -65,7 +65,9 @@ struct ContainerCardView: View {
                 MetaItem(label: "CPUs", value: "\(container.cpus)")
                 MetaItem(label: "Arch", value: container.arch)
                 if container.state.isRunning {
-                    MetaItem(label: "Uptime", value: container.uptimeDisplay, highlight: true)
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        MetaItem(label: "Uptime", value: container.uptimeDisplay(at: context.date), highlight: true)
+                    }
                 }
             }
 

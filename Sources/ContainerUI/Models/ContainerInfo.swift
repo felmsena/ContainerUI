@@ -39,11 +39,16 @@ struct ContainerInfo: Identifiable, Hashable {
         ip.components(separatedBy: "/").first ?? ip
     }
 
-    var uptimeDisplay: String {
+    private static let isoFormatter = ISO8601DateFormatter()
+
+    var uptimeDisplay: String { uptimeDisplay(at: Date()) }
+
+    /// Uptime relative to `now` — views re-evaluate it from a `TimelineView`,
+    /// since the model itself doesn't change while a container runs.
+    func uptimeDisplay(at now: Date) -> String {
         guard !started.isEmpty else { return "—" }
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: started) else { return started }
-        let elapsed = Date().timeIntervalSince(date)
+        guard let date = Self.isoFormatter.date(from: started) else { return started }
+        let elapsed = now.timeIntervalSince(date)
         if elapsed < 0 { return "—" }
         if elapsed < 60 { return "\(Int(elapsed))s" }
         if elapsed < 3600 { return "\(Int(elapsed / 60))m \(Int(elapsed.truncatingRemainder(dividingBy: 60)))s" }

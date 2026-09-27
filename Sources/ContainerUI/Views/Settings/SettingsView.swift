@@ -10,7 +10,7 @@ struct SettingsView: View {
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system
     @AppStorage(ContainerBinary.overrideKey) private var customBinaryPath = ""
     @State private var isCheckingForUpdates = false
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     @State private var registryLogins: [RegistryLogin] = []
     @State private var showAddRegistrySheet = false
@@ -258,7 +258,7 @@ struct SettingsView: View {
             RegistryLoginSheet {
                 Task { await loadRegistryLogins() }
             }
-            .environmentObject(service)
+            .environment(service)
         }
     }
 

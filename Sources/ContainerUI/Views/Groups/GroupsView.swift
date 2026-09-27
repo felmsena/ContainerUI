@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct GroupsView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Binding var selected: URL?
     @State private var groupFiles: [URL] = []
 
@@ -80,7 +80,7 @@ struct GroupsView: View {
 }
 
 private struct GroupRow: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     let fileURL: URL
 
     private var name: String { fileURL.deletingPathExtension().lastPathComponent }

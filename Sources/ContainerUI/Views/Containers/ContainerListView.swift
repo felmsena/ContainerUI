@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct ContainerListView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @Binding var selected: ContainerInfo?
     @State private var searchText = ""
     @State private var showPruneAlert = false
@@ -116,7 +117,7 @@ struct ContainerListView: View {
                 .disabled(stoppedCount == 0)
                 .accessibilityLabel(pruneContainersLabel)
 
-                Button { service.showRunSheet = true } label: {
+                Button { app.runContainer() } label: {
                     Image(systemName: "plus")
                 }
                 .help("Run new container")
@@ -217,7 +218,7 @@ struct ContainerListView: View {
                 title: "No containers",
                 subtitle: "Run your first container to get started."
             ) {
-                Button { service.showRunSheet = true } label: {
+                Button { app.runContainer() } label: {
                     Label("Run Container", systemImage: "play.fill")
                         .frame(minWidth: 130)
                 }
