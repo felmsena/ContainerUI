@@ -3,21 +3,33 @@ import SwiftUI
 struct VolumesView: View {
     @Environment(ContainerService.self) private var service
     @Binding var selected: VolumeInfo?
-    @State private var showCreateSheet = false
+    @Environment(AppState.self) private var app
     @State private var showPruneAlert = false
+    @State private var searchText = ""
+
+    private var filtered: [VolumeInfo] {
+        guard !searchText.isEmpty else { return service.volumes }
+        return service.volumes.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            SearchField(text: $searchText, prompt: "Search volumes…")
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Theme.bg)
+
             if service.volumes.isEmpty {
                 EmptyStateView(icon: "externaldrive", title: "No volumes") {
-                    Button("Create volume") { showCreateSheet = true }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
+                    Button("Create volume") { app.showCreateVolumeSheet = true }
+                        .buttonStyle(BrandButtonStyle(kind: .primary))
                 }
+            } else if filtered.isEmpty {
+                EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 6) {
-                        ForEach(service.volumes) { volume in
+                        ForEach(filtered) { volume in
                             VolumeRowView(volume: volume, isSelected: selected?.id == volume.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture { selected = volume }
@@ -48,7 +60,7 @@ struct VolumesView: View {
                 .accessibilityLabel("Prune unused volumes")
 
                 Button {
-                    showCreateSheet = true
+                    app.showCreateVolumeSheet = true
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -65,9 +77,6 @@ struct VolumesView: View {
         } message: {
             Text("Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone.")
         }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateVolumeSheet(isPresented: $showCreateSheet)
-        }
     }
 }
 
@@ -76,6 +85,8 @@ struct VolumeRowView: View {
     let isSelected: Bool
     @Environment(ContainerService.self) private var service
     @State private var showDeleteAlert = false
+
+    private var inUse: Bool { !service.containers(using: volume).isEmpty }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -117,7 +128,9 @@ struct VolumeRowView: View {
                     .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
-            .help("Delete volume")
+            .disabled(inUse)
+            .opacity(inUse ? 0.35 : 1)
+            .help(inUse ? "In use by a container" : "Delete volume")
             .accessibilityLabel("Delete \(volume.name)")
         }
         .padding(.horizontal, 12)

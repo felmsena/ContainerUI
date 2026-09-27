@@ -17,6 +17,8 @@ struct ContainerInfo: Identifiable, Hashable {
     /// Host-side sources of the container's mounts (for named volumes, the
     /// volume's image file — see `VolumeInfo.source`).
     var mountSources: [String] = []
+    /// Named volumes mounted into the container.
+    var volumeNames: [String] = []
 
     /// The BuildKit container Apple Container runs behind `container build`.
     /// It's infrastructure, not a user container, so it's listed separately.

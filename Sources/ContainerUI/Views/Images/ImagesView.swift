@@ -233,7 +233,9 @@ struct ImageRowView: View {
                     .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
-            .help("Delete image")
+            .disabled(usageState != .unused)
+            .opacity(usageState != .unused ? 0.35 : 1)
+            .help(usageState != .unused ? "In use by a container" : "Delete image")
             .accessibilityLabel("Delete \(image.shortName)")
         }
         .padding(.horizontal, 12)

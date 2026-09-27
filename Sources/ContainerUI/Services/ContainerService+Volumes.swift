@@ -2,6 +2,14 @@ import Foundation
 
 extension ContainerService {
 
+    /// Containers that mount `volume`: by volume name, or (for older CLIs
+    /// without typed mounts) by the volume's backing image path.
+    func containers(using volume: VolumeInfo) -> [ContainerInfo] {
+        containers.filter {
+            $0.volumeNames.contains(volume.name) || (!volume.source.isEmpty && $0.mountSources.contains(volume.source))
+        }
+    }
+
     func fetchVolumes() async {
         update(\.volumes, (try? await fetchJSONOrText(
             args: [bin] + CLI.volumeList(),
@@ -56,6 +64,8 @@ extension ContainerService {
             let name: String
             let driver: String
             let options: [String: String]?
+            let source: String?
+            let sizeInBytes: Int?
         }
         let configuration: Configuration
     }
@@ -68,7 +78,9 @@ extension ContainerService {
                 .map { "\($0.key)=\($0.value)" }
                 .joined(separator: ",")
             return VolumeInfo(name: entry.configuration.name, type: "named",
-                               driver: entry.configuration.driver, options: options)
+                               driver: entry.configuration.driver, options: options,
+                               source: entry.configuration.source ?? "",
+                               sizeInBytes: entry.configuration.sizeInBytes)
         }
     }
 }

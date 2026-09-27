@@ -433,3 +433,11 @@
 "Removed .%@ domain" = "Dominio .%@ eliminado";
 "Couldn't create .%@ domain" = "No se pudo crear el dominio .%@";
 "Couldn't remove .%@ domain" = "No se pudo eliminar el dominio .%@";
+
+/* Volumes usage */
+"Max size" = "Tamaño máximo";
+"Disk image" = "Imagen de disco";
+"Not mounted by any container" = "Ningún contenedor lo monta";
+"Remove the containers that mount this volume before deleting it." = "Eliminá los contenedores que montan este volumen antes de borrarlo.";
+"Search volumes…" = "Buscar volúmenes…";
+"In use by a container" = "En uso por un contenedor";

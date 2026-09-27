@@ -541,7 +541,14 @@ final class ContainerService {
             struct ImageRef: Decodable { let reference: String }
             struct Platform: Decodable { let os: String; let architecture: String }
             struct Resources: Decodable { let cpus: Int; let memoryInBytes: Int }
-            struct Mount: Decodable { let source: String }
+            struct Mount: Decodable {
+                struct Kind: Decodable {
+                    struct Volume: Decodable { let name: String }
+                    let volume: Volume?
+                }
+                let source: String
+                let type: Kind?
+            }
             let image: ImageRef
             let platform: Platform
             let resources: Resources
@@ -574,7 +581,8 @@ final class ContainerService {
                 started: entry.status.startedDate ?? "",
                 labels: entry.configuration.labels ?? [:],
                 networks: entry.status.networks.compactMap(\.network),
-                mountSources: (entry.configuration.mounts ?? []).map(\.source).filter { !$0.isEmpty }
+                mountSources: (entry.configuration.mounts ?? []).map(\.source).filter { !$0.isEmpty },
+                volumeNames: (entry.configuration.mounts ?? []).compactMap { $0.type?.volume?.name }
             )
         }
     }

@@ -73,3 +73,24 @@ final class CLI14ParsingTests: XCTestCase {
         XCTAssertFalse(ImageInfo(name: "alpine", tag: "latest", digest: "").isSystem)
     }
 }
+
+@MainActor
+final class VolumeUsageTests: XCTestCase {
+    func testContainersUsingVolume_matchesByNameOrBackingImage() async {
+        let json = """
+        [{"configuration":{"image":{"reference":"alpine"},"platform":{"architecture":"arm64","os":"linux"},
+          "resources":{"cpus":1,"memoryInBytes":268435456},
+          "mounts":[{"destination":"/data","source":"/vols/db/volume.img","type":{"volume":{"name":"db","format":"ext4"}}}]},
+          "id":"c1","status":{"networks":[],"state":"running"}},
+         {"configuration":{"image":{"reference":"alpine"},"platform":{"architecture":"arm64","os":"linux"},
+          "resources":{"cpus":1,"memoryInBytes":268435456},"mounts":[]},
+          "id":"c2","status":{"networks":[],"state":"running"}}]
+        """
+        let service = ContainerService(runner: FakeRunner { _ in FakeRunner.ok(json) }, binary: "/x", startBackgroundWork: false)
+        await service.fetchContainers()
+        let db = VolumeInfo(name: "db", type: "named", driver: "local", options: "", source: "/vols/db/volume.img")
+        let other = VolumeInfo(name: "other", type: "named", driver: "local", options: "")
+        XCTAssertEqual(service.containers(using: db).map(\.id), ["c1"])
+        XCTAssertTrue(service.containers(using: other).isEmpty)
+    }
+}
