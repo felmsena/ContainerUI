@@ -119,3 +119,40 @@ final class NetworkParsingTests: XCTestCase {
         XCTAssertEqual(ContainerService.parseNetworkList(output), [NetworkInfo(name: "default", subnet: "192.168.64.0/24")])
     }
 }
+
+final class InspectRunSpecTests: XCTestCase {
+    func testParseContainerDetail_reconstructsRunSpec() {
+        let json = """
+        [{"configuration":{"id":"web","image":{"reference":"docker.io/library/nginx:alpine"},
+          "initProcess":{"arguments":["-g","daemon off;"],"environment":["PATH=/usr/bin","MODE=prod"],
+            "executable":"/docker-entrypoint.sh","user":{"id":{"gid":0,"uid":0}},"workingDirectory":"/srv"},
+          "labels":{"team":"core"},
+          "mounts":[{"destination":"/data","source":"/vols/db/volume.img","type":{"volume":{"name":"db"}}},
+                    {"destination":"/run","source":"","type":{"tmpfs":{}}},
+                    {"destination":"/src","source":"/Users/me/src","type":{"virtiofs":{}}}],
+          "networks":[{"network":"backend"}],"platform":{"architecture":"amd64","os":"linux"},
+          "publishedPorts":[{"containerPort":80,"hostAddress":"0.0.0.0","hostPort":8080,"proto":"tcp"}],
+          "readOnly":true,"resources":{"cpus":2,"memoryInBytes":1073741824},"rosetta":true,"ssh":false,"useInit":true}}]
+        """
+        guard let spec = ContainerService.parseContainerDetail(Data(json.utf8))?.runSpec else { return XCTFail() }
+        XCTAssertEqual(spec.image, "docker.io/library/nginx:alpine")
+        XCTAssertEqual(spec.memory, "1G")
+        XCTAssertEqual(spec.cpus, 2)
+        XCTAssertEqual(spec.ports, ["8080:80"])
+        XCTAssertEqual(spec.volumes, ["db:/data", "/Users/me/src:/src"])
+        XCTAssertEqual(spec.env, ["MODE=prod"])
+        XCTAssertEqual(spec.network, "backend")
+        XCTAssertEqual(spec.platform, "linux/amd64")
+        XCTAssertTrue(spec.rosetta && spec.readOnly && spec.useInit)
+        XCTAssertEqual(spec.labels, ["team=core"])
+        XCTAssertEqual(spec.entrypoint, "/docker-entrypoint.sh")
+        XCTAssertEqual(ContainerService.tokenizeCommand(spec.command), ["-g", "daemon off;"])
+        XCTAssertEqual(spec.workdir, "/srv")
+        XCTAssertEqual(spec.user, "")
+    }
+
+    func testMemorySpec() {
+        XCTAssertEqual(ContainerService.memorySpec(268_435_456), "256M")
+        XCTAssertEqual(ContainerService.memorySpec(2_147_483_648), "2G")
+    }
+}

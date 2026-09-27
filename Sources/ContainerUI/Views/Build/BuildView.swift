@@ -8,7 +8,7 @@ struct BuildView: View {
     @AppStorage("lastBuildContext") private var contextPath = ""
     @AppStorage("lastBuildTag") private var tag = ""
     @State private var detectedFile: String?
-    @State private var buildArgs: [EnvVar] = []
+    @State private var buildArgs: [EditablePair] = []
     /// The build started from this form. Held by the service, so it keeps
     /// running (and stays cancellable) if you navigate away and back.
     @State private var jobID: UUID?
@@ -65,39 +65,9 @@ struct BuildView: View {
                     }
 
                     formSection("Build Args (optional)") {
-                        VStack(spacing: 6) {
-                            ForEach($buildArgs) { $arg in
-                                HStack(spacing: 8) {
-                                    TextField("KEY", text: $arg.key)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Text("=")
-                                        .foregroundStyle(Theme.text2)
-                                        .font(.system(size: 13, design: .monospaced))
-                                    TextField("value", text: $arg.value)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Button {
-                                        buildArgs.removeAll { $0.id == arg.id }
-                                    } label: {
-                                        Image(systemName: "minus.circle.fill").foregroundStyle(Theme.danger)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("Remove build argument")
-                                }
-                            }
+                        PairListEditor(pairs: $buildArgs, leftPlaceholder: "KEY", rightPlaceholder: "value",
+                                       separator: "=", addLabel: "Add build arg", removeLabel: "Remove build argument")
                             .disabled(isBuilding)
-                            Button {
-                                buildArgs.append(EnvVar(key: "", value: ""))
-                            } label: {
-                                Label("Add build arg", systemImage: "plus.circle")
-                                    .font(.system(size: 12))
-                            }
-                            .buttonStyle(.borderless)
-                            .disabled(isBuilding)
-                        }
                     }
 
                     if let error {
@@ -188,7 +158,7 @@ struct BuildView: View {
         guard let contextDir else { return }
         let trimmedTag = tag.trimmingCharacters(in: .whitespaces)
         guard !trimmedTag.isEmpty else { return }
-        let args = buildArgs.filter { !$0.key.isEmpty }.map { "\($0.key)=\($0.value)" }
+        let args = buildArgs.filter { !$0.left.isEmpty }.map { $0.joined("=") }
         jobID = service.startBuild(tag: trimmedTag, contextDir: contextDir.path, buildArgs: args).id
     }
 }

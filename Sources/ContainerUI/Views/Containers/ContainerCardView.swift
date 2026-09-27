@@ -4,6 +4,7 @@ struct ContainerCardView: View {
     let container: ContainerInfo
     let isSelected: Bool
     @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showRemoveAlert = false
     @State private var showKillAlert = false
 
@@ -133,6 +134,12 @@ struct ContainerCardView: View {
                 } label: {
                     Label("Start", systemImage: "play.fill")
                 }
+            }
+            Divider()
+            Button {
+                Task { if let spec = await service.duplicateSpec(for: container.id) { app.runContainer(spec) } }
+            } label: {
+                Label("Duplicate…", systemImage: "plus.square.on.square")
             }
             Divider()
             Button(role: .destructive) {

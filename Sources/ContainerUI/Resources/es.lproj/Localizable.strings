@@ -484,3 +484,32 @@
 "Internal (host-only, no outbound access)" = "Interna (solo host, sin acceso a internet)";
 "Couldn't delete network %@" = "No se pudo eliminar la red %@";
 "Couldn't prune networks" = "No se pudieron limpiar las redes";
+
+/* Run sheet (full) */
+"Network" = "Red";
+"Load .env file…" = "Cargar archivo .env…";
+"Pass a KEY=value file with --env-file" = "Pasar un archivo KEY=valor con --env-file";
+"Remove env file" = "Quitar archivo env";
+"Advanced" = "Avanzado";
+"Command (overrides the image's CMD)" = "Comando (reemplaza el CMD de la imagen)";
+"e.g. npm run dev" = "p. ej. npm run dev";
+"Entrypoint" = "Entrypoint";
+"image default" = "predeterminado de la imagen";
+"Working directory" = "Directorio de trabajo";
+"User" = "Usuario";
+"uid[:gid] or name" = "uid[:gid] o nombre";
+"Platform" = "Plataforma";
+"Native (linux/arm64)" = "Nativa (linux/arm64)";
+"linux/amd64 (x86, via Rosetta)" = "linux/amd64 (x86, con Rosetta)";
+"Remove the container when it stops (--rm)" = "Eliminar el contenedor cuando se detenga (--rm)";
+"Read-only root filesystem" = "Sistema de archivos raíz de solo lectura";
+"Run an init process (reaps zombies, forwards signals)" = "Usar un proceso init (limpia zombis y reenvía señales)";
+"Forward the SSH agent" = "Reenviar el agente SSH";
+"Enable Rosetta" = "Activar Rosetta";
+"Labels" = "Etiquetas";
+"Add label" = "Agregar etiqueta";
+"Remove label" = "Quitar etiqueta";
+"key" = "clave";
+"Duplicate…" = "Duplicar…";
+"More actions" = "Más acciones";
+"Couldn't read the configuration of %@" = "No se pudo leer la configuración de %@";

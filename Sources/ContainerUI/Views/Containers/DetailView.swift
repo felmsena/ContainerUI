@@ -11,6 +11,7 @@ enum DetailTab: String, CaseIterable {
 struct DetailView: View {
     let container: ContainerInfo
     @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var tab: DetailTab = .info
 
     @State private var showCopyFromSheet = false
@@ -79,6 +80,14 @@ struct DetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
+                        Task { if let spec = await service.duplicateSpec(for: container.id) { app.runContainer(spec) } }
+                    } label: {
+                        Label("Duplicate…", systemImage: "plus.square.on.square")
+                    }
+
+                    Divider()
+
+                    Button {
                         showCopyFromSheet = true
                     } label: {
                         Label("Copy file from container…", systemImage: "square.and.arrow.down")
@@ -107,8 +116,8 @@ struct DetailView: View {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
-                .help("File actions")
-                .accessibilityLabel("File actions")
+                .help("More actions")
+                .accessibilityLabel("More actions")
             }
         }
         .onChange(of: container.state.isRunning) { _, isRunning in

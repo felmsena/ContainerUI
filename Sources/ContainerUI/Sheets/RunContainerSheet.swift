@@ -1,16 +1,17 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RunContainerSheet: View {
     @Environment(ContainerService.self) private var service
     @Environment(\.dismiss) private var dismiss
 
-    @State private var imageRef: String
-    @State private var name: String
-    @State private var ports: [PortMapping]
-    @State private var memory: String
-    @State private var cpus: Int
-    @State private var envVars: [EnvVar]
-    @State private var volumeMounts: [VolumeMount] = []
+    /// Everything except the list-valued fields, which are edited as pairs.
+    @State private var spec: RunSpec
+    @State private var ports: [EditablePair]
+    @State private var envVars: [EditablePair]
+    @State private var mounts: [EditablePair]
+    @State private var labels: [EditablePair]
+    @State private var showAdvanced: Bool
     @State private var isRunning = false
     @State private var error: String?
 
@@ -18,291 +19,299 @@ struct RunContainerSheet: View {
     private let cpuOptions = Array(1...8)
 
     init(spec: RunSpec) {
-        _imageRef = State(initialValue: spec.image)
-        _name = State(initialValue: spec.name)
+        var base = spec
+        if base.memory == nil { base.memory = "512M" }
+        if base.cpus == nil { base.cpus = 1 }
+        _spec = State(initialValue: base)
         _ports = State(initialValue: spec.ports.map { raw in
-            let parts = raw.split(separator: ":", maxSplits: 1).map(String.init)
-            return PortMapping(host: parts.first ?? "", container: parts.count > 1 ? parts[1] : "")
+            // "host:container[/proto]" or "ip:host:container": the container
+            // side is after the last colon.
+            guard let colon = raw.lastIndex(of: ":") else { return EditablePair(left: raw) }
+            return EditablePair(left: String(raw[..<colon]), right: String(raw[raw.index(after: colon)...]))
         })
-        _memory = State(initialValue: spec.memory ?? "512M")
-        _cpus = State(initialValue: spec.cpus ?? 1)
-        _envVars = State(initialValue: spec.env.map { raw in
-            let parts = raw.components(separatedBy: "=")
-            return EnvVar(key: parts.first ?? "", value: parts.dropFirst().joined(separator: "="))
-        })
+        _envVars = State(initialValue: spec.env.map { EditablePair(splitting: $0, separator: "=") })
+        _mounts = State(initialValue: spec.volumes.map { EditablePair(splitting: $0, separator: ":") })
+        _labels = State(initialValue: spec.labels.map { EditablePair(splitting: $0, separator: "=") })
+        _showAdvanced = State(initialValue: Self.hasAdvancedOptions(spec))
+    }
+
+    private static func hasAdvancedOptions(_ s: RunSpec) -> Bool {
+        !s.command.isEmpty || !s.entrypoint.isEmpty || !s.workdir.isEmpty || !s.user.isEmpty
+            || !s.platform.isEmpty || s.rosetta || s.removeOnExit || s.readOnly || s.useInit
+            || s.forwardSSH || !s.labels.isEmpty || !s.envFile.isEmpty
+    }
+
+    /// The spec with the pair editors folded back in — what runs, and what
+    /// the preview shows.
+    private var fullSpec: RunSpec {
+        var s = spec
+        s.ports = ports.filter { !$0.left.isEmpty && !$0.right.isEmpty }.map { $0.joined(":") }
+        s.env = envVars.filter { !$0.left.isEmpty }.map { $0.joined("=") }
+        s.volumes = mounts.filter { !$0.left.isEmpty && !$0.right.isEmpty }.map { $0.joined(":") }
+        s.labels = labels.filter { !$0.left.isEmpty }.map { $0.joined("=") }
+        return s
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "play.rectangle.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.green)
-                Text("Run Container")
-                    .font(.headline)
-                Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Close")
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-
+            header
             Divider()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-
-                    // Image
-                    formSection("Image") {
-                        TextField("e.g. nginx:alpine, postgres:16", text: $imageRef)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 13, design: .monospaced))
+                    basics
+                    FormSection("Port Mappings") {
+                        PairListEditor(pairs: $ports, leftPlaceholder: "Host", rightPlaceholder: "Container",
+                                       separator: "→", addLabel: "Add port", removeLabel: "Remove port mapping")
                     }
-
-                    // Name
-                    formSection("Name (optional)") {
-                        TextField("Leave empty for auto-generated name", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 13))
-                    }
-
-                    // Ports
-                    formSection("Port Mappings") {
-                        VStack(spacing: 6) {
-                            ForEach($ports) { $port in
-                                HStack(spacing: 8) {
-                                    TextField("Host", text: $port.host)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Text("→")
-                                        .foregroundStyle(.secondary)
-                                    TextField("Container", text: $port.container)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Button {
-                                        ports.removeAll { $0.id == port.id }
-                                    } label: {
-                                        Image(systemName: "minus.circle.fill")
-                                            .foregroundStyle(.red)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("Remove port mapping")
-                                }
-                            }
+                    FormSection("Environment Variables") {
+                        PairListEditor(pairs: $envVars, leftPlaceholder: "KEY", rightPlaceholder: "value",
+                                       separator: "=", addLabel: "Add variable", removeLabel: "Remove environment variable") {
                             Button {
-                                ports.append(PortMapping(host: "", container: ""))
+                                chooseEnvFile()
                             } label: {
-                                Label("Add port", systemImage: "plus.circle")
+                                Label(spec.envFile.isEmpty ? "Load .env file…" : (spec.envFile as NSString).lastPathComponent,
+                                      systemImage: "doc.text")
                                     .font(.system(size: 12))
                             }
                             .buttonStyle(.borderless)
-                        }
-                    }
-
-                    // Resources
-                    HStack(spacing: 16) {
-                        formSection("Memory") {
-                            Picker("", selection: $memory) {
-                                ForEach(memoryOptions, id: \.self) { Text($0).tag($0) }
-                            }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
-                        }
-                        formSection("CPUs") {
-                            Picker("", selection: $cpus) {
-                                ForEach(cpuOptions, id: \.self) { Text("\($0)").tag($0) }
-                            }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
-                        }
-                    }
-
-                    // Env vars
-                    formSection("Environment Variables") {
-                        VStack(spacing: 6) {
-                            ForEach($envVars) { $env in
-                                HStack(spacing: 8) {
-                                    TextField("KEY", text: $env.key)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Text("=")
-                                        .foregroundStyle(.secondary)
-                                        .font(.system(size: 13, design: .monospaced))
-                                    TextField("value", text: $env.value)
-                                        .textFieldStyle(.roundedBorder)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .frame(maxWidth: .infinity)
-                                    Button {
-                                        envVars.removeAll { $0.id == env.id }
-                                    } label: {
-                                        Image(systemName: "minus.circle.fill")
-                                            .foregroundStyle(.red)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("Remove environment variable")
+                            .help(spec.envFile.isEmpty ? "Pass a KEY=value file with --env-file" : spec.envFile)
+                            if !spec.envFile.isEmpty {
+                                Button { spec.envFile = "" } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.text3)
                                 }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Remove env file")
                             }
-                            Button {
-                                envVars.append(EnvVar(key: "", value: ""))
-                            } label: {
-                                Label("Add variable", systemImage: "plus.circle")
-                                    .font(.system(size: 12))
-                            }
-                            .buttonStyle(.borderless)
                         }
                     }
-
-                    // Volume Mounts
-                    formSection("Volume Mounts") {
-                        VStack(spacing: 6) {
-                            ForEach($volumeMounts) { $mount in
-                                HStack(spacing: 8) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Source").font(.system(size: 10)).foregroundStyle(.tertiary)
-                                        TextField("volume-name or /host/path", text: $mount.source)
-                                            .textFieldStyle(.roundedBorder)
-                                            .font(.system(size: 12, design: .monospaced))
+                    FormSection("Volume Mounts") {
+                        PairListEditor(pairs: $mounts, leftPlaceholder: "volume-name or /host/path", rightPlaceholder: "/data",
+                                       separator: ":", addLabel: "Add mount", removeLabel: "Remove volume mount") {
+                            if !service.volumes.isEmpty {
+                                Menu {
+                                    ForEach(service.volumes) { vol in
+                                        Button(vol.name) { mounts.append(EditablePair(left: vol.name, right: "")) }
                                     }
-                                    Text(":").foregroundStyle(.secondary).font(.system(size: 14, design: .monospaced))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Container path").font(.system(size: 10)).foregroundStyle(.tertiary)
-                                        TextField("/data", text: $mount.target)
-                                            .textFieldStyle(.roundedBorder)
-                                            .font(.system(size: 12, design: .monospaced))
-                                    }
-                                    Button {
-                                        volumeMounts.removeAll { $0.id == mount.id }
-                                    } label: {
-                                        Image(systemName: "minus.circle.fill").foregroundStyle(.red)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .padding(.top, 14)
-                                    .accessibilityLabel("Remove volume mount")
-                                }
-                            }
-                            HStack(spacing: 12) {
-                                Button {
-                                    volumeMounts.append(VolumeMount(source: "", target: ""))
                                 } label: {
-                                    Label("Add mount", systemImage: "plus.circle")
+                                    Label("From existing volume", systemImage: "externaldrive")
                                         .font(.system(size: 12))
                                 }
-                                .buttonStyle(.borderless)
-
-                                if !service.volumes.isEmpty {
-                                    Menu {
-                                        ForEach(service.volumes) { vol in
-                                            Button(vol.name) {
-                                                volumeMounts.append(VolumeMount(source: vol.name, target: ""))
-                                            }
-                                        }
-                                    } label: {
-                                        Label("From existing volume", systemImage: "externaldrive")
-                                            .font(.system(size: 12))
-                                    }
-                                    .buttonStyle(.borderless)
-                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
                             }
                         }
                     }
-
-                    // Command preview
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Command preview")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(commandPreview)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .padding(10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5)
-                            )
-                            .textSelection(.enabled)
-                    }
-
+                    advanced
+                    preview
                     if let error {
                         ErrorBanner(message: error) { self.error = nil }
                     }
                 }
                 .padding(20)
             }
-
             Divider()
+            footer
+        }
+        .frame(minWidth: 560, maxWidth: 680, minHeight: 640, maxHeight: 900)
+        .background(Theme.bg)
+        .task {
+            if service.networks.isEmpty { await service.fetchNetworks() }
+            if service.volumes.isEmpty { await service.fetchVolumes() }
+        }
+    }
 
-            // Footer
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.escape)
+    // MARK: Sections
 
-                Button {
-                    Task { await run() }
-                } label: {
-                    HStack(spacing: 6) {
-                        Group {
-                            if isRunning {
-                                ProgressView().scaleEffect(0.7)
-                            } else {
-                                Image(systemName: "play.fill")
-                            }
+    private var header: some View {
+        HStack {
+            Image(systemName: "play.rectangle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(Theme.accent)
+            Text("Run Container")
+                .font(.headline)
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Theme.text3)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+
+    private var basics: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            FormSection("Image") {
+                TextField("e.g. nginx:alpine, postgres:16", text: $spec.image)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 13, design: .monospaced))
+            }
+            FormSection("Name (optional)") {
+                TextField("Leave empty for auto-generated name", text: $spec.name)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 13))
+            }
+            HStack(alignment: .top, spacing: 16) {
+                FormSection("Memory") {
+                    Picker("", selection: Binding(get: { spec.memory ?? "512M" }, set: { spec.memory = $0 })) {
+                        ForEach(memoryOptions + (memoryOptions.contains(spec.memory ?? "") ? [] : [spec.memory ?? "512M"]), id: \.self) {
+                            Text($0).tag($0)
                         }
-                        .frame(width: 14, height: 14)
-                        Text(isRunning ? "Running…" : "Run")
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                FormSection("CPUs") {
+                    Picker("", selection: Binding(get: { spec.cpus ?? 1 }, set: { spec.cpus = $0 })) {
+                        ForEach(cpuOptions + (cpuOptions.contains(spec.cpus ?? 1) ? [] : [spec.cpus ?? 1]), id: \.self) {
+                            Text("\($0)").tag($0)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                FormSection("Network") {
+                    Picker("", selection: $spec.network) {
+                        Text("default").tag("")
+                        ForEach(service.networks.filter { $0.name != "default" }) { net in
+                            Text(net.name).tag(net.name)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+            }
+        }
+    }
+
+    private var advanced: some View {
+        DisclosureGroup(isExpanded: $showAdvanced) {
+            VStack(alignment: .leading, spacing: 16) {
+                FormSection("Command (overrides the image's CMD)") {
+                    TextField("e.g. npm run dev", text: $spec.command)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, design: .monospaced))
+                }
+                HStack(spacing: 12) {
+                    FormSection("Entrypoint") {
+                        TextField("image default", text: $spec.entrypoint)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    FormSection("Working directory") {
+                        TextField("/app", text: $spec.workdir)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    FormSection("User") {
+                        TextField("uid[:gid] or name", text: $spec.user)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12, design: .monospaced))
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                .disabled(imageRef.trimmingCharacters(in: .whitespaces).isEmpty || isRunning)
+                FormSection("Platform") {
+                    Picker("", selection: $spec.platform) {
+                        Text("Native (linux/arm64)").tag("")
+                        Text("linux/amd64 (x86, via Rosetta)").tag("linux/amd64")
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .fixedSize()
+                    .onChange(of: spec.platform) { _, platform in
+                        if platform == "linux/amd64" { spec.rosetta = true }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Remove the container when it stops (--rm)", isOn: $spec.removeOnExit)
+                    Toggle("Read-only root filesystem", isOn: $spec.readOnly)
+                    Toggle("Run an init process (reaps zombies, forwards signals)", isOn: $spec.useInit)
+                    Toggle("Forward the SSH agent", isOn: $spec.forwardSSH)
+                    Toggle("Enable Rosetta", isOn: $spec.rosetta)
+                }
+                .toggleStyle(.checkbox)
+                .font(.system(size: 12.5))
+                FormSection("Labels") {
+                    PairListEditor(pairs: $labels, leftPlaceholder: "key", rightPlaceholder: "value",
+                                   separator: "=", addLabel: "Add label", removeLabel: "Remove label")
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.top, 12)
+        } label: {
+            Text("Advanced")
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.text)
         }
-        .frame(minWidth: 520, maxWidth: 640, minHeight: 620, maxHeight: 860)
     }
 
-    @ViewBuilder
-    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
+    private var preview: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-            content()
+            Text("Command preview")
+                .font(.caption)
+                .foregroundStyle(Theme.text2)
+            HStack(alignment: .top, spacing: 6) {
+                Text(fullSpec.commandLine(bin: service.bin))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(Theme.text2)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                CopyButton(text: fullSpec.commandLine(bin: service.bin), help: "Copy command")
+            }
+            .padding(10)
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8))
         }
     }
 
-    private var spec: RunSpec {
-        RunSpec(
-            image: imageRef,
-            name: name,
-            memory: memory,
-            cpus: cpus,
-            ports: ports.filter { !$0.host.isEmpty && !$0.container.isEmpty }.map { "\($0.host):\($0.container)" },
-            volumes: volumeMounts.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map { "\($0.source):\($0.target)" },
-            env: envVars.filter { !$0.key.isEmpty }.map { "\($0.key)=\($0.value)" }
-        )
+    private var footer: some View {
+        HStack {
+            Spacer()
+            Button("Cancel") { dismiss() }
+                .keyboardShortcut(.escape)
+                .buttonStyle(BrandButtonStyle(kind: .secondary))
+
+            Button {
+                Task { await run() }
+            } label: {
+                HStack(spacing: 6) {
+                    Group {
+                        if isRunning {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "play.fill")
+                        }
+                    }
+                    .frame(width: 14, height: 14)
+                    Text(isRunning ? "Running…" : "Run")
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .buttonStyle(BrandButtonStyle(kind: .primary))
+            .disabled(spec.image.trimmingCharacters(in: .whitespaces).isEmpty || isRunning)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
     }
 
-    private var commandPreview: String { spec.commandLine(bin: service.bin) }
+    // MARK: Actions
+
+    private func chooseEnvFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.showsHiddenFiles = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        spec.envFile = url.path
+        showAdvanced = true
+    }
 
     private func run() async {
         isRunning = true
         error = nil
         do {
-            try await service.runContainer(spec)
+            try await service.runContainer(fullSpec)
             dismiss()
         } catch {
             self.error = error.localizedDescription
