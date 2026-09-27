@@ -12,7 +12,7 @@ extension ContainerService {
 
     func pullImage(_ ref: String) async throws {
         do {
-            try await shell([bin, "image", "pull", ref])
+            try await shell([bin, "image", "pull", ref], timeout: nil)
         } catch {
             notifyPullFinished(ref: ref, success: false)
             throw error
@@ -26,8 +26,12 @@ extension ContainerService {
         await fetchImages()
     }
 
-    func pruneImages() async {
-        _ = try? await shell([bin, "image", "prune"])
+    /// Removes exactly the given images (the ones the UI counted as unused),
+    /// rather than `image prune`, whose "dangling only" semantics don't match
+    /// what the toolbar shows and whose `--all` would also delete the
+    /// system images Apple Container needs.
+    func removeImages(_ refs: [String]) async {
+        for ref in refs { _ = try? await shell([bin, "image", "rm", ref]) }
         await fetchImages()
     }
 

@@ -124,7 +124,7 @@ final class ContainerService: ObservableObject {
         daemonState = .starting
         serviceError = nil
         do {
-            try await shell([bin, "system", "start"])
+            try await shell([bin, "system", "start"], timeout: nil)
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             await fetchContainers()
         } catch {
@@ -192,7 +192,7 @@ final class ContainerService: ObservableObject {
     }
 
     func fetchLogs(for id: String, lines: Int = 200) async -> String {
-        (try? await shell([bin, "logs", "--tail", "\(lines)", id])) ?? ""
+        (try? await shell([bin, "logs", "-n", "\(lines)", id])) ?? ""
     }
 
     /// Single-quotes `s` for safe use as one shell argument, escaping any
@@ -236,15 +236,16 @@ final class ContainerService: ObservableObject {
     }
 
     func runContainer(image: String, name: String?, ports: [(host: String, container: String)], volumes: [String] = [], memory: String, cpus: Int, env: [String]) async throws {
-        var args = [bin, "run"]
+        // --detach: without it `container run` stays attached until the
+        // container exits, so the call (and the Run sheet) never returned.
+        var args = [bin, "run", "--detach"]
         if let name { args += ["--name", name] }
-        args += ["-m", memory]
-        if cpus > 1 { args += ["--cpus", "\(cpus)"] }
+        args += ["-m", memory, "--cpus", "\(cpus)"]
         for p in ports   { args += ["-p", "\(p.host):\(p.container)"] }
         for v in volumes { args += ["-v", v] }
         for e in env     { args += ["-e", e] }
         args.append(image)
-        try await shell(args)
+        try await shell(args, timeout: nil)  // may pull the image first
         await fetchContainers()
     }
 

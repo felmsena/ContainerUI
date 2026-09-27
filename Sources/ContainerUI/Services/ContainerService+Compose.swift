@@ -45,7 +45,7 @@ extension ContainerService {
             args.append(service.image)
 
             do {
-                try await shell(args)
+                try await shell(args, timeout: nil)
                 composeState[name] = .running
             } catch {
                 composeState[name] = .failed(error.localizedDescription)

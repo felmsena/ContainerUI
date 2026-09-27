@@ -283,12 +283,11 @@ struct RunContainerSheet: View {
     }
 
     private var commandPreview: String {
-        var parts = ["/opt/homebrew/bin/container", "run"]
+        var parts = [service.bin, "run", "--detach"]
         if !name.trimmingCharacters(in: .whitespaces).isEmpty {
             parts += ["--name", name.trimmingCharacters(in: .whitespaces)]
         }
-        parts += ["-m", memory]
-        if cpus > 1 { parts += ["--cpus", "\(cpus)"] }
+        parts += ["-m", memory, "--cpus", "\(cpus)"]
         for p in ports where !p.host.isEmpty && !p.container.isEmpty {
             parts += ["-p", "\(p.host):\(p.container)"]
         }
