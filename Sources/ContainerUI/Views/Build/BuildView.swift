@@ -31,6 +31,7 @@ struct BuildView: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    BuilderCard()
 
                     formSection("Build context") {
                         HStack(spacing: 8) {

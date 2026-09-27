@@ -21,6 +21,7 @@ final class ContainerService {
     // Containers (user containers only — see `builderContainer`)
     var containers: [ContainerInfo] = []
     var builderContainer: ContainerInfo?
+    var builderBusy = false
     /// True only until the first container list arrives; background polls
     /// don't flip it, so nothing flickers every refresh.
     var isLoading = true

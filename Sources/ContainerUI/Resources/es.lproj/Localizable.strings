@@ -513,3 +513,14 @@
 "Duplicate…" = "Duplicar…";
 "More actions" = "Más acciones";
 "Couldn't read the configuration of %@" = "No se pudo leer la configuración de %@";
+
+/* Builder */
+"Builder" = "Builder";
+"Not created" = "No creado";
+"%lld CPUs · %@" = "%lld CPUs · %@";
+"Created automatically by the first build." = "Se crea automáticamente con la primera compilación.";
+"Apply & restart" = "Aplicar y reiniciar";
+"Delete the builder container (its build cache goes with it)" = "Eliminar el contenedor del builder (y su caché de compilación)";
+"Couldn't start the builder" = "No se pudo iniciar el builder";
+"Couldn't stop the builder" = "No se pudo detener el builder";
+"Couldn't delete the builder" = "No se pudo eliminar el builder";

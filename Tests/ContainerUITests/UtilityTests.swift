@@ -222,3 +222,12 @@ final class ComposeReconcileTests: XCTestCase {
         XCTAssertEqual(ContainerService.composeNetworkName(group: "My Stack"), "compose-my-stack")
     }
 }
+
+final class MemorySpecTests: XCTestCase {
+    func testBytesFromMemorySpec() {
+        XCTAssertEqual(ContainerService.bytes(fromMemorySpec: "512M"), 536_870_912)
+        XCTAssertEqual(ContainerService.bytes(fromMemorySpec: "2g"), 2_147_483_648)
+        XCTAssertEqual(ContainerService.bytes(fromMemorySpec: "1024"), 1024)
+        XCTAssertNil(ContainerService.bytes(fromMemorySpec: "lots"))
+    }
+}
