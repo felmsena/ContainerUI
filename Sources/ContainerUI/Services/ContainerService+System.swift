@@ -48,6 +48,39 @@ extension ContainerService {
         await fetchContainers()
     }
 
+    // MARK: – DNS domains
+
+    func fetchDNSDomains() async -> [String] {
+        let output = (try? await cli(CLI.dnsList())) ?? ""
+        return output.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    /// A DNS label: letters, digits and hyphens, not starting/ending with a
+    /// hyphen. Validated because the name ends up in an administrator
+    /// AppleScript `do shell script`.
+    nonisolated static func isValidDNSDomain(_ domain: String) -> Bool {
+        domain.range(of: #"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"#, options: .regularExpression) != nil
+    }
+
+    /// Creates or deletes a local DNS domain. Both need root, so they run
+    /// through an administrator-privileges AppleScript prompt.
+    func setDNSDomain(_ domain: String, create: Bool) async {
+        guard Self.isValidDNSDomain(domain) else { return }
+        let args = [bin] + (create ? CLI.dnsCreate(domain) : CLI.dnsDelete(domain))
+        let command = args.map(Self.shellQuote).joined(separator: " ")
+        let script = "do shell script \"\(Self.appleScriptEscape(command))\" with administrator privileges"
+        do {
+            try await shell(["/usr/bin/osascript", "-e", script], timeout: nil)
+            showToast(Toast(title: create
+                ? String(localized: "Created .\(domain) domain")
+                : String(localized: "Removed .\(domain) domain")))
+        } catch {
+            report(error, as: create
+                ? String(localized: "Couldn't create .\(domain) domain")
+                : String(localized: "Couldn't remove .\(domain) domain"))
+        }
+    }
+
     nonisolated static func parseSystemStatus(_ output: String) -> SystemStatusInfo? {
         var values: [String: String] = [:]
         for line in output.components(separatedBy: "\n").dropFirst() where !line.isEmpty {

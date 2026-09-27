@@ -425,4 +425,11 @@
 "1 day" = "1 día";
 "How far back to fetch" = "Cuánto tiempo hacia atrás cargar";
 
-
+/* DNS */
+"Create a local DNS domain so containers are reachable by name (e.g. web.%@). Uses .test by default — .local belongs to Bonjour and can break printer.local-style names on your network." = "Creá un dominio DNS local para acceder a los contenedores por nombre (p. ej. web.%@). Por defecto usa .test: .local pertenece a Bonjour y puede romper nombres como impresora.local en tu red.";
+"Configured:" = "Configurados:";
+"Use lowercase letters, digits and hyphens." = "Usá minúsculas, dígitos y guiones.";
+"Created .%@ domain" = "Dominio .%@ creado";
+"Removed .%@ domain" = "Dominio .%@ eliminado";
+"Couldn't create .%@ domain" = "No se pudo crear el dominio .%@";
+"Couldn't remove .%@ domain" = "No se pudo eliminar el dominio .%@";

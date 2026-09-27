@@ -196,3 +196,13 @@ final class ImageKnowledgeAndBrowserTests: XCTestCase {
         XCTAssertEqual(ContainerService.pollInterval(base: 60, appIsActive: true, daemonState: .running), 60)
     }
 }
+
+final class DNSDomainTests: XCTestCase {
+    func testValidDomains() {
+        for d in ["test", "dev", "my-lab", "a1"] { XCTAssertTrue(ContainerService.isValidDNSDomain(d), d) }
+    }
+
+    func testInvalidDomains_rejectedBeforeReachingTheAdminScript() {
+        for d in ["", "Test", "-x", "x-", "a.b", "x\"; rm -rf /", "a b"] { XCTAssertFalse(ContainerService.isValidDNSDomain(d), d) }
+    }
+}

@@ -83,6 +83,7 @@ enum CLI {
         if follow { args.append("--follow") }
         return args
     }
+    static func dnsList() -> [String] { ["system", "dns", "list", "--quiet"] }
     static func dnsCreate(_ domain: String) -> [String] { ["system", "dns", "create", domain] }
     static func dnsDelete(_ domain: String) -> [String] { ["system", "dns", "delete", domain] }
 
