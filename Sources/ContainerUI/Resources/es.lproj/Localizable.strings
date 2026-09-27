@@ -363,3 +363,9 @@
 "Command failed with exit code %lld" = "El comando falló con código de salida %lld";
 "The command timed out" = "El comando excedió el tiempo de espera";
 "The command was cancelled" = "El comando fue cancelado";
+
+/* Prune confirmations */
+"Remove 1 unused image?" = "¿Eliminar 1 imagen sin uso?";
+"Remove %lld unused images?" = "¿Eliminar %lld imágenes sin uso?";
+"Remove all unused volumes?" = "¿Eliminar todos los volúmenes sin uso?";
+"Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone." = "Se eliminarán todos los volúmenes que no use ningún contenedor, incluidos sus datos. Esta acción no se puede deshacer.";

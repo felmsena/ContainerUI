@@ -4,6 +4,7 @@ struct VolumesView: View {
     @EnvironmentObject var service: ContainerService
     @Binding var selected: VolumeInfo?
     @State private var showCreateSheet = false
+    @State private var showPruneAlert = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,7 +40,7 @@ struct VolumesView: View {
                 .accessibilityLabel("Refresh volumes")
 
                 Button {
-                    Task { await service.pruneVolumes() }
+                    showPruneAlert = true
                 } label: {
                     Image(systemName: "trash.slash")
                 }
@@ -56,6 +57,14 @@ struct VolumesView: View {
             }
         }
         .task { await service.fetchVolumes() }
+        .alert("Remove all unused volumes?", isPresented: $showPruneAlert) {
+            Button("Remove", role: .destructive) {
+                Task { await service.pruneVolumes() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone.")
+        }
         .sheet(isPresented: $showCreateSheet) {
             CreateVolumeSheet(isPresented: $showCreateSheet)
         }

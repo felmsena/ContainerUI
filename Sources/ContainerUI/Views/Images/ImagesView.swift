@@ -8,6 +8,7 @@ struct ImagesView: View {
     @State private var pullRef = ""
     @State private var isPulling = false
     @State private var pullError: String?
+    @State private var showPruneAlert = false
 
     private var filtered: [ImageInfo] {
         guard !searchText.isEmpty else { return service.images }
@@ -17,17 +18,23 @@ struct ImagesView: View {
         }
     }
 
-    private var unusedCount: Int {
+    private var unusedImages: [ImageInfo] {
         service.images.filter { img in
-            !service.containers.contains { imageMatches(containerImage: $0.image, image: img) }
-        }.count
+            !img.isSystem && !service.containers.contains { imageMatches(containerImage: $0.image, image: img) }
+        }
     }
+
+    private var unusedCount: Int { unusedImages.count }
 
     /// Split into two fully-formed literals (rather than interpolating an
     /// English "s" suffix) so each pluralization gets its own, grammatically
     /// correct translation.
     private var pruneImagesLabel: LocalizedStringKey {
         unusedCount == 1 ? "Prune 1 unused image" : "Prune \(unusedCount) unused images"
+    }
+
+    private var removeImagesAlertTitle: LocalizedStringKey {
+        unusedCount == 1 ? "Remove 1 unused image?" : "Remove \(unusedCount) unused images?"
     }
 
     var body: some View {
@@ -90,7 +97,7 @@ struct ImagesView: View {
                 .accessibilityLabel("Refresh images")
 
                 Button {
-                    Task { await service.pruneImages() }
+                    showPruneAlert = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "trash.slash")
@@ -102,6 +109,7 @@ struct ImagesView: View {
                 }
                 .help(pruneImagesLabel)
                 .foregroundStyle(unusedCount > 0 ? .orange : .secondary)
+                .disabled(unusedCount == 0)
                 .accessibilityLabel(pruneImagesLabel)
 
                 Button {
@@ -116,6 +124,15 @@ struct ImagesView: View {
             }
         }
         .task { await service.fetchImages() }
+        .alert(removeImagesAlertTitle, isPresented: $showPruneAlert) {
+            Button("Remove", role: .destructive) {
+                let refs = unusedImages.map(\.ref)
+                Task { await service.removeImages(refs) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(unusedImages.map(\.ref).joined(separator: "\n"))
+        }
         .sheet(isPresented: $showPullSheet) {
             PullImageSheet(isPresented: $showPullSheet)
         }
