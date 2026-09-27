@@ -441,3 +441,17 @@
 "Remove the containers that mount this volume before deleting it." = "Eliminá los contenedores que montan este volumen antes de borrarlo.";
 "Search volumes…" = "Buscar volúmenes…";
 "In use by a container" = "En uso por un contenedor";
+
+/* Compose */
+"Skipped: %@ failed to start" = "Omitido: %@ no pudo iniciarse";
+"Couldn't save: %@" = "No se pudo guardar: %@";
+"The document is empty." = "El documento está vacío.";
+"Expected a top-level \"services:\" key." = "Se esperaba una clave \"services:\" en el nivel superior.";
+"Line %lld: inconsistent indentation." = "Línea %lld: indentación inconsistente.";
+"Line %lld: expected a service name ending in \":\"." = "Línea %lld: se esperaba un nombre de servicio terminado en \":\".";
+"Line %lld: unknown key \"%@\" in service \"%@\". Allowed: image, ports, env, volumes, depends_on." = "Línea %lld: clave desconocida \"%@\" en el servicio \"%@\". Permitidas: image, ports, env, volumes, depends_on.";
+"Service \"%@\" is missing a required \"image\" key." = "Al servicio \"%@\" le falta la clave obligatoria \"image\".";
+"Line %lld: service \"%@\" is declared more than once." = "Línea %lld: el servicio \"%@\" está declarado más de una vez.";
+"Line %lld: malformed \"%@\" entry \"%@\" in service \"%@\"." = "Línea %lld: entrada \"%@\" mal formada (\"%@\") en el servicio \"%@\".";
+"Service \"%@\" depends on unknown service \"%@\"." = "El servicio \"%@\" depende del servicio desconocido \"%@\".";
+"Dependency cycle: %@." = "Ciclo de dependencias: %@.";

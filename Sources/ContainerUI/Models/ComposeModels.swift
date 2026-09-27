@@ -35,25 +35,25 @@ enum ComposeParseError: Error, Equatable, CustomStringConvertible {
     var description: String {
         switch self {
         case .emptyDocument:
-            return "The document is empty."
+            return String(localized: "The document is empty.")
         case .missingServicesKey:
-            return "Expected a top-level \"services:\" key."
+            return String(localized: "Expected a top-level \"services:\" key.")
         case .badIndentation(let line):
-            return "Line \(line): inconsistent indentation."
+            return String(localized: "Line \(line): inconsistent indentation.")
         case .invalidServiceHeader(let line):
-            return "Line \(line): expected a service name ending in \":\"."
+            return String(localized: "Line \(line): expected a service name ending in \":\".")
         case .unknownKey(let key, let service, let line):
-            return "Line \(line): unknown key \"\(key)\" in service \"\(service)\". Allowed: image, ports, env, volumes, depends_on."
+            return String(localized: "Line \(line): unknown key \"\(key)\" in service \"\(service)\". Allowed: image, ports, env, volumes, depends_on.")
         case .missingImage(let service):
-            return "Service \"\(service)\" is missing a required \"image\" key."
+            return String(localized: "Service \"\(service)\" is missing a required \"image\" key.")
         case .duplicateService(let name, let line):
-            return "Line \(line): service \"\(name)\" is declared more than once."
+            return String(localized: "Line \(line): service \"\(name)\" is declared more than once.")
         case .malformedListItem(let item, let key, let service, let line):
-            return "Line \(line): malformed \"\(key)\" entry \"\(item)\" in service \"\(service)\"."
+            return String(localized: "Line \(line): malformed \"\(key)\" entry \"\(item)\" in service \"\(service)\".")
         case .unknownDependency(let dep, let service):
-            return "Service \"\(service)\" depends on unknown service \"\(dep)\"."
+            return String(localized: "Service \"\(service)\" depends on unknown service \"\(dep)\".")
         case .dependencyCycle(let cycle):
-            return "Dependency cycle: \(cycle.joined(separator: " → "))."
+            return String(localized: "Dependency cycle: \(cycle.joined(separator: " → ")).")
         }
     }
 }

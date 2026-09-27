@@ -206,3 +206,19 @@ final class DNSDomainTests: XCTestCase {
         for d in ["", "Test", "-x", "x-", "a.b", "x\"; rm -rf /", "a b"] { XCTAssertFalse(ContainerService.isValidDNSDomain(d), d) }
     }
 }
+
+final class ComposeReconcileTests: XCTestCase {
+    func testComposeAction() {
+        XCTAssertEqual(ContainerService.composeAction(existing: nil), .run)
+        XCTAssertEqual(ContainerService.composeAction(existing: .stopped), .start)
+        XCTAssertEqual(ContainerService.composeAction(existing: .running), .keep)
+    }
+
+    func testSanitizedGroupName() {
+        XCTAssertEqual(ContainerService.sanitizedGroupName("My Stack (dev)"), "my-stack-dev")
+        XCTAssertEqual(ContainerService.sanitizedGroupName("web_app.v2"), "web_app.v2")
+        XCTAssertEqual(ContainerService.sanitizedGroupName("!!!"), "group")
+        XCTAssertEqual(ContainerService.composeContainerName(group: "My Stack", service: "db"), "my-stack-db")
+        XCTAssertEqual(ContainerService.composeNetworkName(group: "My Stack"), "compose-my-stack")
+    }
+}

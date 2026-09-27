@@ -7,6 +7,8 @@ struct GroupDetailView: View {
     @State private var text: String = ""
     @State private var parseResult: Result<ComposeGroup, ComposeParseError>?
     @State private var didLoad = false
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveError: String?
 
     private var groupName: String { fileURL.deletingPathExtension().lastPathComponent }
 
@@ -37,8 +39,14 @@ struct GroupDetailView: View {
                             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.border))
                             .onChange(of: text) { _, newValue in
                                 parseResult = ComposeParser.parse(newValue)
-                                try? newValue.write(to: fileURL, atomically: true, encoding: .utf8)
+                                scheduleSave(newValue)
                             }
+                    }
+
+                    if let saveError {
+                        Label(saveError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.danger)
                     }
 
                     if let validationError {
@@ -91,12 +99,37 @@ struct GroupDetailView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
-        .navigationTitle(LocalizedStringKey(groupName))
+        .navigationTitle(groupName)  // a file name: shown verbatim, never translated
         .task {
             guard !didLoad else { return }
             didLoad = true
             text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
             parseResult = ComposeParser.parse(text)
+        }
+        .onDisappear {
+            // Flush a pending save immediately rather than dropping it.
+            if saveTask != nil {
+                saveTask?.cancel()
+                try? text.write(to: fileURL, atomically: true, encoding: .utf8)
+            }
+        }
+    }
+
+    /// Writes the YAML half a second after typing stops, instead of
+    /// rewriting the file on every keystroke.
+    private func scheduleSave(_ newValue: String) {
+        guard didLoad else { return }
+        saveTask?.cancel()
+        saveTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            do {
+                try newValue.write(to: fileURL, atomically: true, encoding: .utf8)
+                saveError = nil
+            } catch {
+                saveError = String(localized: "Couldn't save: \(error.localizedDescription)")
+            }
+            saveTask = nil
         }
     }
 
