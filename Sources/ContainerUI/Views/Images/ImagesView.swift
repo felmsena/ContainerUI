@@ -131,57 +131,6 @@ struct ImagesView: View {
     }
 }
 
-func imageIcon(for name: String) -> (symbol: String, color: Color) {
-    let base = name.split(separator: "/").last.map(String.init) ?? name
-    let lower = base.lowercased()
-    switch true {
-    case lower.contains("postgres") || lower.contains("pgvector"):
-        return ("cylinder.split.1x2.fill", .blue)
-    case lower.contains("mysql") || lower.contains("mariadb"):
-        return ("cylinder.split.1x2.fill", .orange)
-    case lower.contains("mongo"):
-        return ("cylinder.split.1x2.fill", .green)
-    case lower.contains("redis"):
-        return ("bolt.fill", .red)
-    case lower.contains("nginx") || lower.contains("caddy") || lower.contains("traefik") || lower.contains("haproxy"):
-        return ("network", .blue)
-    case lower.contains("node") || lower.contains("deno") || lower.contains("bun"):
-        return ("chevron.left.forwardslash.chevron.right", Color(red: 0.3, green: 0.7, blue: 0.3))
-    case lower.contains("python"):
-        return ("chevron.left.forwardslash.chevron.right", .yellow)
-    case lower.contains("ruby") || lower.contains("rails"):
-        return ("chevron.left.forwardslash.chevron.right", .red)
-    case lower.contains("golang") || lower.contains("/go"):
-        return ("chevron.left.forwardslash.chevron.right", .cyan)
-    case lower.contains("rust"):
-        return ("chevron.left.forwardslash.chevron.right", .orange)
-    case lower.contains("java") || lower.contains("gradle") || lower.contains("maven"):
-        return ("chevron.left.forwardslash.chevron.right", .red)
-    case lower.contains("ubuntu") || lower.contains("debian") || lower.contains("centos") || lower.contains("fedora"):
-        return ("terminal.fill", .purple)
-    case lower.contains("alpine"):
-        return ("mountain.2.fill", .gray)
-    case lower.contains("kafka") || lower.contains("rabbit") || lower.contains("nats"):
-        return ("arrow.left.arrow.right.circle.fill", .orange)
-    case lower.contains("elastic") || lower.contains("opensearch") || lower.contains("kibana"):
-        return ("magnifyingglass.circle.fill", Color(red: 1.0, green: 0.6, blue: 0.1))
-    case lower.contains("grafana") || lower.contains("prometheus"):
-        return ("chart.xyaxis.line", .orange)
-    case lower.contains("jenkins") || lower.contains("gitlab") || lower.contains("drone"):
-        return ("gearshape.2.fill", .indigo)
-    case lower.contains("wordpress") || lower.contains("ghost") || lower.contains("drupal"):
-        return ("globe", .blue)
-    case lower.contains("minio") || lower.contains("s3"):
-        return ("externaldrive.fill", .yellow)
-    case lower.contains("sonar"):
-        return ("doc.text.magnifyingglass", Color(red: 0.2, green: 0.55, blue: 0.85))
-    case lower.contains("scanner") || lower.contains("cli"):
-        return ("terminal.fill", .indigo)
-    default:
-        return ("shippingbox.fill", .secondary)
-    }
-}
-
 struct ImageRowView: View {
     let image: ImageInfo
     var isSelected: Bool = false
