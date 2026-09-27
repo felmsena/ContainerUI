@@ -86,7 +86,9 @@ struct StatsTabView: View {
             }
             .padding(12)
         }
-        .task(id: container.id) {
+        // Keyed on the state too, so starting the container while this tab
+        // is open begins polling instead of spinning on "Loading stats…".
+        .task(id: "\(container.id)-\(container.state.rawValue)") {
             guard container.state.isRunning else { return }
             while !Task.isCancelled {
                 await service.pollStats(for: container.id)

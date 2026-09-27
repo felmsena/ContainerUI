@@ -159,3 +159,40 @@ final class UtilityTests: XCTestCase {
         XCTAssertNotEqual(a, b)
     }
 }
+
+final class ImageKnowledgeAndBrowserTests: XCTestCase {
+
+    func testImageIcon_ubuntuIsNotMistakenForBun() {
+        XCTAssertEqual(imageIcon(for: "ubuntu").symbol, "terminal.fill")
+        XCTAssertEqual(imageIcon(for: "oven/bun:1").symbol, "chevron.left.forwardslash.chevron.right")
+    }
+
+    func testImageIcon_tokensNotSubstrings() {
+        XCTAssertEqual(imageIcon(for: "clickhouse/clickhouse-server").symbol, "shippingbox.fill")
+        XCTAssertEqual(imageIcon(for: "golang:1.23").symbol, "chevron.left.forwardslash.chevron.right")
+        XCTAssertEqual(imageIcon(for: "sonarsource/sonar-scanner-cli").symbol, "terminal.fill")
+    }
+
+    func testKnownPorts_nextcloudIsNotNext() {
+        XCTAssertEqual(ImageKnowledge.hint(for: "nextcloud:apache")?.ports.map(\.port), [80])
+    }
+
+    func testBrowserURL_prefersPublishedMapping() {
+        let published = [ContainerDetail.PublishedPort(containerPort: 80, hostPort: 8080, hostAddress: "0.0.0.0", proto: "tcp")]
+        XCTAssertEqual(ContainerService.browserURL(containerPort: 80, ip: "192.168.64.2", published: published)?.absoluteString,
+                       "http://localhost:8080")
+    }
+
+    func testBrowserURL_unpublishedPortUsesContainerIP() {
+        XCTAssertEqual(ContainerService.browserURL(containerPort: 5432, ip: "192.168.64.2", published: [])?.absoluteString,
+                       "http://192.168.64.2:5432")
+        XCTAssertNil(ContainerService.browserURL(containerPort: 80, ip: "", published: []))
+    }
+
+    func testPollInterval() {
+        XCTAssertEqual(ContainerService.pollInterval(base: 5, appIsActive: true, daemonState: .running), 5)
+        XCTAssertEqual(ContainerService.pollInterval(base: 5, appIsActive: false, daemonState: .running), 15)
+        XCTAssertEqual(ContainerService.pollInterval(base: 3, appIsActive: true, daemonState: .notRunning), 15)
+        XCTAssertEqual(ContainerService.pollInterval(base: 60, appIsActive: true, daemonState: .running), 60)
+    }
+}

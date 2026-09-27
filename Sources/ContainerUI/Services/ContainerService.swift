@@ -105,10 +105,27 @@ final class ContainerService {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.fetchContainers()
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard let self else { return }
+                await self.fetchContainers()
+                let delay = Self.pollInterval(
+                    base: UserDefaults.standard.object(forKey: "refreshInterval") as? Int ?? 5,
+                    appIsActive: NSApp?.isActive ?? true,
+                    daemonState: self.daemonState
+                )
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
         }
+    }
+
+    /// Seconds until the next container poll: the user's "Refresh every"
+    /// setting while the app is in front, three times slower in the
+    /// background (the menu bar still needs fresh data, just not as often),
+    /// and at least 15 s while the service is down or not installed.
+    nonisolated static func pollInterval(base: Int, appIsActive: Bool, daemonState: DaemonState) -> TimeInterval {
+        var seconds = TimeInterval(max(base, 1))
+        if !appIsActive { seconds *= 3 }
+        if daemonState == .notRunning || daemonState == .notInstalled { seconds = max(seconds, 15) }
+        return seconds
     }
 
     // MARK: – Containers
@@ -331,10 +348,18 @@ final class ContainerService {
         NSAppleScript(source: script)?.executeAndReturnError(&err)
     }
 
-    func openInBrowser(ip: String, port: Int) {
-        if let url = URL(string: "http://localhost:\(port)") {
-            NSWorkspace.shared.open(url)
+    /// Where a browser should go to reach `containerPort`: through its
+    /// published host mapping when there is one, otherwise straight to the
+    /// container's own IP (Apple Container gives every container an address
+    /// reachable from the host). `localhost:<containerPort>` — the old
+    /// behaviour — only worked when the same port happened to be published.
+    nonisolated static func browserURL(containerPort: Int, ip: String, published: [ContainerDetail.PublishedPort]) -> URL? {
+        if let mapping = published.first(where: { $0.containerPort == containerPort }) {
+            let host = mapping.hostAddress.isEmpty || mapping.hostAddress == "0.0.0.0" ? "localhost" : mapping.hostAddress
+            return URL(string: "http://\(host):\(mapping.hostPort)")
         }
+        guard !ip.isEmpty else { return nil }
+        return URL(string: "http://\(ip):\(containerPort)")
     }
 
     func runContainer(_ spec: RunSpec) async throws {
@@ -361,7 +386,9 @@ final class ContainerService {
     /// "check automatically" preference; the background loop does not.
     func checkForUpdates(force: Bool = false) async {
         guard force || UserDefaults.standard.object(forKey: "autoCheckForUpdates") as? Bool ?? true else { return }
-        guard let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
+        guard let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+              !local.hasSuffix("-dev") || force  // local builds aren't "out of date"
+        else { return }
         guard let release = try? await UpdateChecker.fetchLatestRelease(),
               !release.draft, !release.prerelease,
               UpdateChecker.isNewer(release.tagName, than: local)

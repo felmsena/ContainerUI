@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(ContainerService.self) private var service
+    @Environment(\.openWindow) private var openWindow
 
     private var running: [ContainerInfo] {
         service.containers.filter { $0.state.isRunning }
@@ -65,12 +66,14 @@ struct MenuBarView: View {
             // Footer actions
             VStack(spacing: 2) {
                 MenuBarAction(icon: "macwindow", label: "Open ContainerUI") {
+                    // SwiftUI names the window "main-window-AppWindow-N", so the
+                    // old exact-match never found it; and once closed it's gone,
+                    // so it has to be reopened through openWindow.
                     NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApp.windows where window.identifier?.rawValue == "main-window" {
+                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main-window") == true }) {
                         window.makeKeyAndOrderFront(nil)
-                    }
-                    if NSApp.windows.filter({ $0.isVisible }).isEmpty {
-                        NSApp.windows.first?.makeKeyAndOrderFront(nil)
+                    } else {
+                        openWindow(id: "main-window")
                     }
                 }
                 MenuBarAction(icon: "arrow.clockwise", label: "Refresh") {
