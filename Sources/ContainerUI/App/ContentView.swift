@@ -80,6 +80,11 @@ struct ContentView: View {
         } detail: {
             detailColumn
         }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                ActivityToolbarButton()
+            }
+        }
         .modifier(SelectionSync())
         .modifier(GlobalSheets())
         .tint(Theme.accent)

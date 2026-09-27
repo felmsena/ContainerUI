@@ -5,14 +5,27 @@ struct BuildView: View {
     @Environment(ContainerService.self) private var service
     @Environment(AppState.self) private var app
 
-    @State private var contextDir: URL?
+    @AppStorage("lastBuildContext") private var contextPath = ""
+    @AppStorage("lastBuildTag") private var tag = ""
     @State private var detectedFile: String?
-    @State private var tag = ""
     @State private var buildArgs: [EnvVar] = []
-    @State private var logText = ""
-    @State private var isBuilding = false
-    @State private var buildTask: ProcessStream?
-    @State private var error: String?
+    /// The build started from this form. Held by the service, so it keeps
+    /// running (and stays cancellable) if you navigate away and back.
+    @State private var jobID: UUID?
+
+    private var contextDir: URL? { contextPath.isEmpty ? nil : URL(fileURLWithPath: contextPath) }
+
+    private var job: BackgroundJob? {
+        if let jobID, let job = service.jobs.first(where: { $0.id == jobID }) { return job }
+        return service.latestJob(.build)
+    }
+
+    private var isBuilding: Bool { job?.isRunning == true }
+
+    private var error: String? {
+        if case .failed(let message) = job?.status { return message }
+        return nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,8 +41,7 @@ struct BuildView: View {
                                 .truncationMode(.middle)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Button("Choose…", action: chooseFolder)
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                         }
 
                         if let contextDir {
@@ -89,26 +101,23 @@ struct BuildView: View {
                     }
 
                     if let error {
-                        ErrorBanner(message: error) { self.error = nil }
+                        ErrorBanner(message: error) { jobID = nil; service.clearFinishedJobs() }
                     }
 
-                    if isBuilding || !logText.isEmpty {
-                        formSection("Build log") {
-                            ScrollViewReader { proxy in
-                                ScrollView {
-                                    Text(logText)
-                                        .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(Theme.text2)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .textSelection(.enabled)
-                                        .padding(10)
-                                        .id("logBottom")
+                    if let job {
+                        formSection(job.isRunning ? "Build log — \(job.subject)" : "Last build — \(job.subject)") {
+                            LogTextView(text: job.log)
+                                .frame(height: 300)
+                                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.border))
+                            if job.status == .succeeded, let built = builtImage(for: job) {
+                                Button {
+                                    app.selectedImage = built
+                                    app.sidebarItem = .images
+                                } label: {
+                                    Label("Show \(built.ref) in Images", systemImage: "arrow.right.circle")
                                 }
-                                .frame(height: 280)
-                                .background(Theme.surface)
-                                .onChange(of: logText) { _, _ in
-                                    proxy.scrollTo("logBottom", anchor: .bottom)
-                                }
+                                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                             }
                         }
                     }
@@ -122,9 +131,9 @@ struct BuildView: View {
                 Spacer()
                 if isBuilding {
                     Button("Cancel", role: .destructive) {
-                        buildTask?.cancel()
+                        job?.cancel()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(BrandButtonStyle(kind: .destructive))
                 }
                 Button {
                     Task { await startBuild() }
@@ -138,14 +147,16 @@ struct BuildView: View {
                         Text(isBuilding ? "Building…" : "Build")
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
                 .disabled(isBuilding || contextDir == nil || detectedFile == nil || tag.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
         .navigationTitle("Build Image")
+        .onAppear {
+            if let contextDir { detectedFile = ContainerService.detectBuildFile(in: contextDir) }
+        }
     }
 
     @ViewBuilder
@@ -165,39 +176,19 @@ struct BuildView: View {
         panel.allowsMultipleSelection = false
         panel.prompt = "Select"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        contextDir = url
+        contextPath = url.path
         detectedFile = ContainerService.detectBuildFile(in: url)
+    }
+
+    private func builtImage(for job: BackgroundJob) -> ImageInfo? {
+        service.images.first { imageMatches(containerImage: job.subject, image: $0) }
     }
 
     private func startBuild() async {
         guard let contextDir else { return }
         let trimmedTag = tag.trimmingCharacters(in: .whitespaces)
         guard !trimmedTag.isEmpty else { return }
-
-        error = nil
-        logText = ""
-        isBuilding = true
-
         let args = buildArgs.filter { !$0.key.isEmpty }.map { "\($0.key)=\($0.value)" }
-        let task = service.startBuild(tag: trimmedTag, contextDir: contextDir.path, buildArgs: args)
-        buildTask = task
-
-        do {
-            for try await line in task.lines {
-                logText += line + "\n"
-            }
-            service.notifyBuildFinished(tag: trimmedTag, success: true)
-            await service.fetchImages()
-            if let built = service.images.first(where: { imageMatches(containerImage: trimmedTag, image: $0) }) {
-                app.selectedImage = built
-                app.sidebarItem = .images
-            }
-        } catch {
-            self.error = error.localizedDescription
-            service.notifyBuildFinished(tag: trimmedTag, success: false)
-        }
-
-        isBuilding = false
-        buildTask = nil
+        jobID = service.startBuild(tag: trimmedTag, contextDir: contextDir.path, buildArgs: args).id
     }
 }

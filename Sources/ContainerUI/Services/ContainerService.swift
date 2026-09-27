@@ -43,6 +43,9 @@ final class ContainerService {
     var statsHistory: [String: [ContainerStatsSample]] = [:]
     @ObservationIgnored var lastRawStats: [String: RawStatsSample] = [:]
 
+    /// Builds, pulls and compose runs, newest first (see `BackgroundJob`).
+    var jobs: [BackgroundJob] = []
+
     // Feedback
     var toasts: [Toast] = []
     /// Containers with an action in flight (start/stop/restart/remove/kill).

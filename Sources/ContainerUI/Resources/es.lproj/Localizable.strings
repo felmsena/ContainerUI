@@ -391,3 +391,22 @@
 "Could not stop service: %@" = "No se pudo detener el servicio: %@";
 "Working…" = "Procesando…";
 "Dismiss" = "Descartar";
+
+/* Background jobs & Activity */
+"Build %@" = "Compilar %@";
+"Pull %@" = "Descargar %@";
+"Up %@" = "Levantar %@";
+"Down %@" = "Bajar %@";
+"Activity" = "Actividad";
+"Activity, %lld running" = "Actividad, %lld en curso";
+"Clear finished" = "Limpiar terminadas";
+"No builds, pulls or group runs yet." = "Todavía no hay compilaciones, descargas ni grupos en ejecución.";
+"Show log" = "Ver log";
+"Done" = "Listo";
+"Cancelled" = "Cancelado";
+"Failed" = "Falló";
+"Pulling…" = "Descargando…";
+"The pull continues in the background — follow it from Activity in the toolbar." = "La descarga sigue en segundo plano; seguila desde Actividad en la barra de herramientas.";
+"Build log — %@" = "Log de compilación — %@";
+"Last build — %@" = "Última compilación — %@";
+"Show %@ in Images" = "Ver %@ en Imágenes";

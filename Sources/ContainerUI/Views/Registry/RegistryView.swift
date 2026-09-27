@@ -90,7 +90,7 @@ struct RegistryView: View {
                                                  isSelected: selectedEntry?.id == entry.id) {
                                         selectedEntry = entry
                                     } onPull: {
-                                        Task { try? await service.pullImage(entry.fullRef) }
+                                        service.startPull(entry.fullRef)
                                     } onRun: {
                                         app.runContainer(entry.runSpec)
                                     }
@@ -163,7 +163,7 @@ struct RegistryView: View {
                 ZStack(alignment: .top) {
                     List(searchResults) { repo in
                         HubRepoRow(repo: repo) {
-                            Task { try? await service.pullImage(repo.repoName) }
+                            service.startPull(repo.repoName)
                         } onRun: {
                             app.runContainer(RunSpec(image: repo.repoName))
                         }
@@ -305,8 +305,10 @@ struct RegistryCard: View {
     @Environment(ContainerService.self) private var service
 
     private var isAlreadyPulled: Bool {
-        service.images.contains { $0.name == entry.image }
+        service.images.contains { imageMatches(containerImage: entry.fullRef, image: $0) }
     }
+
+    private var isPulling: Bool { service.isPulling(entry.fullRef) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -376,13 +378,17 @@ struct RegistryCard: View {
                     onPull()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: isAlreadyPulled ? "checkmark" : "arrow.down.circle")
-                            .font(.system(size: 10))
-                        Text(isAlreadyPulled ? "Pulled" : "Pull")
+                        if isPulling {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Image(systemName: isAlreadyPulled ? "checkmark" : "arrow.down.circle")
+                                .font(.system(size: 10))
+                        }
+                        Text(isPulling ? "Pulling…" : isAlreadyPulled ? "Pulled" : "Pull")
                     }
                 }
                 .buttonStyle(BrandButtonStyle(kind: .secondary, fill: true))
-                .disabled(isAlreadyPulled)
+                .disabled(isAlreadyPulled || isPulling)
 
                 Button {
                     onRun()

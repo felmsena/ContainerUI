@@ -2,12 +2,9 @@ import SwiftUI
 
 struct ImagesView: View {
     @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @Binding var selected: ImageInfo?
     @State private var searchText = ""
-    @State private var showPullSheet = false
-    @State private var pullRef = ""
-    @State private var isPulling = false
-    @State private var pullError: String?
     @State private var showPruneAlert = false
 
     private var filtered: [ImageInfo] {
@@ -64,7 +61,7 @@ struct ImagesView: View {
             if filtered.isEmpty {
                 if searchText.isEmpty {
                     EmptyStateView(icon: "photo.stack", title: "No images") {
-                        Button("Pull an image") { showPullSheet = true }
+                        Button("Pull an image") { app.showPullSheet = true }
                             .buttonStyle(.borderedProminent)
                             .tint(Theme.accent)
                     }
@@ -113,9 +110,7 @@ struct ImagesView: View {
                 .accessibilityLabel(pruneImagesLabel)
 
                 Button {
-                    pullRef = ""
-                    pullError = nil
-                    showPullSheet = true
+                    app.showPullSheet = true
                 } label: {
                     Image(systemName: "arrow.down.circle")
                 }
@@ -132,9 +127,6 @@ struct ImagesView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(unusedImages.map(\.ref).joined(separator: "\n"))
-        }
-        .sheet(isPresented: $showPullSheet) {
-            PullImageSheet(isPresented: $showPullSheet)
         }
     }
 }
@@ -320,8 +312,8 @@ struct PullImageSheet: View {
     @Binding var isPresented: Bool
     @Environment(ContainerService.self) private var service
     @State private var ref = ""
-    @State private var isPulling = false
-    @State private var error: String?
+
+    private var trimmed: String { ref.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -335,45 +327,30 @@ struct PullImageSheet: View {
                 TextField("e.g. nginx:latest, postgres:16", text: $ref)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13, design: .monospaced))
-                    .onSubmit { Task { await pull() } }
-            }
-
-            if let error {
-                ErrorBanner(message: error) { self.error = nil }
+                    .onSubmit(pull)
+                Text("The pull continues in the background — follow it from Activity in the toolbar.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.text3)
             }
 
             HStack {
                 Spacer()
                 Button("Cancel") { isPresented = false }
                     .keyboardShortcut(.escape)
-                Button("Pull") {
-                    Task { await pull() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .disabled(ref.trimmingCharacters(in: .whitespaces).isEmpty || isPulling)
-            }
-
-            if isPulling {
-                ProgressView("Pulling \(ref)…")
-                    .progressViewStyle(.linear)
+                    .buttonStyle(BrandButtonStyle(kind: .secondary))
+                Button("Pull", action: pull)
+                    .buttonStyle(BrandButtonStyle(kind: .primary))
+                    .disabled(trimmed.isEmpty)
             }
         }
         .padding(20)
         .frame(width: 400)
+        .background(Theme.bg)
     }
 
-    func pull() async {
-        let trimmed = ref.trimmingCharacters(in: .whitespaces)
+    private func pull() {
         guard !trimmed.isEmpty else { return }
-        isPulling = true
-        error = nil
-        do {
-            try await service.pullImage(trimmed)
-            isPresented = false
-        } catch {
-            self.error = error.localizedDescription
-        }
-        isPulling = false
+        service.startPull(trimmed)
+        isPresented = false
     }
 }

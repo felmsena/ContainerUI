@@ -6,10 +6,13 @@ struct GroupDetailView: View {
 
     @State private var text: String = ""
     @State private var parseResult: Result<ComposeGroup, ComposeParseError>?
-    @State private var isBusy = false
     @State private var didLoad = false
 
     private var groupName: String { fileURL.deletingPathExtension().lastPathComponent }
+
+    private var isBusy: Bool {
+        service.jobs.contains { $0.kind == .compose && $0.subject == groupName && $0.isRunning }
+    }
 
     private var validationError: String? {
         guard case .failure(let error) = parseResult else { return nil }
@@ -160,15 +163,21 @@ struct GroupDetailView: View {
 
     private func bringUp() async {
         guard let group = parsedGroup else { return }
-        isBusy = true
-        _ = await service.composeUp(group: groupName, services: group)
-        isBusy = false
+        let name = groupName
+        service.trackCompose(String(localized: "Up \(name)"), group: name) { [service] in
+            switch await service.composeUp(group: name, services: group) {
+            case .success: return nil
+            case .failure(let error): return error.description
+            }
+        }
     }
 
     private func bringDown() async {
         guard let group = parsedGroup else { return }
-        isBusy = true
-        await service.composeDown(group: groupName, services: group)
-        isBusy = false
+        let name = groupName
+        service.trackCompose(String(localized: "Down \(name)"), group: name) { [service] in
+            await service.composeDown(group: name, services: group)
+            return nil
+        }
     }
 }

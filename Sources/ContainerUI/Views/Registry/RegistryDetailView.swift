@@ -4,12 +4,17 @@ struct RegistryDetailView: View {
     let entry: RegistryEntry
     @Environment(ContainerService.self) private var service
     @Environment(AppState.self) private var app
-    @State private var isPulling = false
-    @State private var pullError: String?
-    @State private var pullTask: Task<Void, Never>?
+    private var pullJob: BackgroundJob? { service.latestJob(.pull, subject: entry.fullRef) }
+    private var isPulling: Bool { pullJob?.isRunning == true }
+    private var pullError: String? {
+        if case .failed(let message) = pullJob?.status { return message }
+        return nil
+    }
 
+    /// Name *and* tag must match — a local `postgres:15` doesn't mean the
+    /// catalog's `postgres:16` is already pulled.
     private var isAlreadyPulled: Bool {
-        service.images.contains { $0.name == entry.image }
+        service.images.contains { imageMatches(containerImage: entry.fullRef, image: $0) }
     }
 
     var body: some View {
@@ -146,7 +151,7 @@ struct RegistryDetailView: View {
 
                 // Error
                 if let err = pullError {
-                    ErrorBanner(message: err) { pullError = nil }
+                    ErrorBanner(message: err) { service.clearFinishedJobs() }
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
                 }
@@ -155,10 +160,9 @@ struct RegistryDetailView: View {
                 HStack(spacing: 10) {
                     Button {
                         if isPulling {
-                            pullTask?.cancel()
-                            isPulling = false
+                            pullJob?.cancel()
                         } else {
-                            pullTask = Task { await pull() }
+                            service.startPull(entry.fullRef)
                         }
                     } label: {
                         HStack(spacing: 6) {
@@ -188,6 +192,12 @@ struct RegistryDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
+
+                if let pullJob, pullJob.isRunning {
+                    JobProgressView(job: pullJob)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -237,15 +247,5 @@ struct RegistryDetailView: View {
         }
     }
 
-    private func pull() async {
-        isPulling = true
-        pullError = nil
-        do {
-            try await service.pullImage(entry.fullRef)
-        } catch {
-            pullError = error.localizedDescription
-        }
-        isPulling = false
-    }
 
 }

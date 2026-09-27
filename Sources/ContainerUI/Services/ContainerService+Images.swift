@@ -10,17 +10,6 @@ extension ContainerService {
         )) ?? [])
     }
 
-    func pullImage(_ ref: String) async throws {
-        do {
-            try await cli(CLI.imagePull(ref), timeout: nil)
-        } catch {
-            notifyPullFinished(ref: ref, success: false)
-            throw error
-        }
-        notifyPullFinished(ref: ref, success: true)
-        await fetchImages()
-    }
-
     func deleteImage(_ ref: String) async {
         do { try await cli(CLI.imageDelete(ref)) } catch { report(error, as: String(localized: "Couldn't delete \(ref)")) }
         await fetchImages()

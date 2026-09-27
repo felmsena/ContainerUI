@@ -12,9 +12,4 @@ extension ContainerService {
         }
         return nil
     }
-
-    /// Starts `container build`, streaming its combined output line by line.
-    func startBuild(tag: String, contextDir: String, buildArgs: [String] = []) -> ProcessStream {
-        ProcessRunner.stream([bin] + CLI.build(tag: tag, contextDir: contextDir, buildArgs: buildArgs))
-    }
 }
