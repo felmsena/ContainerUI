@@ -18,11 +18,13 @@ final class AppState {
     var runRequest: RunRequest?
     var showPullSheet = false
     var showCreateVolumeSheet = false
+    var showCreateNetworkSheet = false
 
     var selectedContainer: ContainerInfo?
     var selectedImage: ImageInfo?
     var selectedRegistryEntry: RegistryEntry?
     var selectedVolume: VolumeInfo?
+    var selectedNetwork: NetworkInfo?
     var selectedGroup: URL?
 
     func runContainer(_ spec: RunSpec = RunSpec()) {

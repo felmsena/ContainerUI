@@ -455,3 +455,32 @@
 "Line %lld: malformed \"%@\" entry \"%@\" in service \"%@\"." = "Línea %lld: entrada \"%@\" mal formada (\"%@\") en el servicio \"%@\".";
 "Service \"%@\" depends on unknown service \"%@\"." = "El servicio \"%@\" depende del servicio desconocido \"%@\".";
 "Dependency cycle: %@." = "Ciclo de dependencias: %@.";
+
+/* Networks */
+"Networks" = "Redes";
+"Select a network" = "Seleccioná una red";
+"Search networks…" = "Buscar redes…";
+"No networks" = "No hay redes";
+"Create network" = "Crear red";
+"Refresh networks" = "Actualizar redes";
+"Remove networks with no containers attached" = "Eliminar las redes sin contenedores conectados";
+"Prune unused networks" = "Limpiar redes sin uso";
+"Remove unused networks?" = "¿Eliminar las redes sin uso?";
+"Networks with no containers attached will be deleted." = "Se eliminarán las redes que no tengan contenedores conectados.";
+"built-in" = "integrada";
+"Containers attached" = "Contenedores conectados";
+"IPv4 subnet" = "Subred IPv4";
+"Gateway" = "Puerta de enlace";
+"IPv6 subnet" = "Subred IPv6";
+"Plugin" = "Plugin";
+"Attached containers" = "Contenedores conectados";
+"No containers attached" = "No hay contenedores conectados";
+"Run a container with this network from the Run sheet's Network option; containers on the same network reach each other by name." = "Ejecutá un contenedor en esta red con la opción Red de la hoja Ejecutar; los contenedores de una misma red se alcanzan por nombre.";
+"Delete network" = "Eliminar red";
+"Built-in networks can't be deleted." = "Las redes integradas no se pueden eliminar.";
+"Remove the attached containers before deleting this network." = "Eliminá los contenedores conectados antes de borrar esta red.";
+"Delete network \"%@\"?" = "¿Eliminar la red \"%@\"?";
+"Subnet (optional)" = "Subred (opcional)";
+"Internal (host-only, no outbound access)" = "Interna (solo host, sin acceso a internet)";
+"Couldn't delete network %@" = "No se pudo eliminar la red %@";
+"Couldn't prune networks" = "No se pudieron limpiar las redes";

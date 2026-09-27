@@ -94,3 +94,28 @@ final class VolumeUsageTests: XCTestCase {
         XCTAssertTrue(service.containers(using: other).isEmpty)
     }
 }
+
+final class NetworkParsingTests: XCTestCase {
+    func testParseNetworkListJSON() {
+        let json = """
+        [{"configuration":{"creationDate":"2026-09-27T15:35:54Z","labels":{"com.apple.container.resource.role":"builtin"},
+          "mode":"nat","name":"default","options":{},"plugin":"container-network-vmnet"},"id":"default",
+          "status":{"ipv4Gateway":"192.168.64.1","ipv4Subnet":"192.168.64.0/24","ipv6Subnet":"fdc8::/64"}},
+         {"configuration":{"labels":{},"mode":"nat","name":"backend"},"id":"backend","status":{"ipv4Subnet":"192.168.65.0/24"}}]
+        """
+        let networks = ContainerService.parseNetworkListJSON(Data(json.utf8)) ?? []
+        XCTAssertEqual(networks.map(\.name), ["default", "backend"])
+        XCTAssertTrue(networks[0].isBuiltin)
+        XCTAssertEqual(networks[0].gateway, "192.168.64.1")
+        XCTAssertEqual(networks[0].mode, "nat")
+        XCTAssertFalse(networks[1].isBuiltin)
+    }
+
+    func testParseNetworkListText() {
+        let output = """
+        NETWORK  SUBNET
+        default  192.168.64.0/24
+        """
+        XCTAssertEqual(ContainerService.parseNetworkList(output), [NetworkInfo(name: "default", subnet: "192.168.64.0/24")])
+    }
+}

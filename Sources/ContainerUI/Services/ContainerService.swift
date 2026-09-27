@@ -30,8 +30,9 @@ final class ContainerService {
     // Images
     var images: [ImageInfo] = []
 
-    // Volumes
+    // Volumes & networks
     var volumes: [VolumeInfo] = []
+    var networks: [NetworkInfo] = []
 
     // System
     var systemStatus: SystemStatusInfo?
@@ -250,6 +251,7 @@ final class ContainerService {
         case .containers: await fetchContainers()
         case .images:     await fetchImages()
         case .volumes:    await fetchVolumes()
+        case .networks:   await fetchNetworks(); await fetchContainers()
         case .stats, .logs: await fetchSystemInfo()
         case .registry, .build, .groups, .settings: await fetchContainers()
         }

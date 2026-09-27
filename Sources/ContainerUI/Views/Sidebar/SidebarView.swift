@@ -15,7 +15,7 @@ enum SidebarSection: String, CaseIterable {
 
     var items: [SidebarItem] {
         switch self {
-        case .manage: return [.containers, .images, .volumes]
+        case .manage: return [.containers, .images, .volumes, .networks]
         case .explore: return [.registry, .build, .groups]
         case .monitor: return [.stats, .logs]
         }
@@ -27,14 +27,15 @@ extension SidebarItem {
     var badgeHue: Color {
         switch self {
         case .containers: return Theme.accent
-        case .images: return Color(hex: "#3B82F6")
-        case .volumes: return Color(hex: "#D97706")
-        case .registry: return Color(hex: "#7C6FE0")
-        case .build: return Color(hex: "#E2596B")
-        case .groups: return Color(hex: "#14B8A6")
+        case .images: return Theme.Hue.images
+        case .volumes: return Theme.Hue.volumes
+        case .networks: return Theme.Hue.networks
+        case .registry: return Theme.Hue.registry
+        case .build: return Theme.Hue.build
+        case .groups: return Theme.Hue.groups
         case .stats: return Theme.accent
-        case .logs: return Color(hex: "#64748B")
-        case .settings: return Color(hex: "#889098")
+        case .logs: return Theme.Hue.logs
+        case .settings: return Theme.Hue.settings
         }
     }
 }

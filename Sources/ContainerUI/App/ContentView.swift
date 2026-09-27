@@ -4,6 +4,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
     case containers = "Containers"
     case images     = "Images"
     case volumes    = "Volumes"
+    case networks   = "Networks"
     case registry   = "Registry"
     case build      = "Build"
     case groups     = "Groups"
@@ -16,6 +17,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .containers: return "square.stack.3d.up"
         case .images:     return "shippingbox"
         case .volumes:    return "externaldrive"
+        case .networks:   return "network"
         case .registry:   return "storefront"
         case .build:      return "hammer"
         case .groups:     return "rectangle.3.group"
@@ -99,6 +101,7 @@ struct ContentView: View {
         case .containers: ContainerListView(selected: $app.selectedContainer)
         case .images:     ImagesView(selected: $app.selectedImage)
         case .volumes:    VolumesView(selected: $app.selectedVolume)
+        case .networks:   NetworksView(selected: $app.selectedNetwork)
         case .registry:   RegistryView(selectedEntry: $app.selectedRegistryEntry)
         case .build:      BuildView()
         case .groups:     GroupsView(selected: $app.selectedGroup)
@@ -134,6 +137,12 @@ struct ContentView: View {
                 VolumeDetailView(volume: volume).id(volume.id)
             } else {
                 EmptyStateView(icon: "externaldrive", title: "Select a volume")
+            }
+        case .networks:
+            if let network = app.selectedNetwork {
+                NetworkDetailView(network: network).id(network.id)
+            } else {
+                EmptyStateView(icon: "network", title: "Select a network")
             }
         case .groups:
             if let group = app.selectedGroup {
@@ -171,6 +180,11 @@ private struct SelectionSync: ViewModifier {
                     app.selectedVolume = volumes.first { $0.id == selected.id }
                 }
             }
+            .onChange(of: service.networks) { _, networks in
+                if let selected = app.selectedNetwork {
+                    app.selectedNetwork = networks.first { $0.id == selected.id }
+                }
+            }
             .onChange(of: app.sidebarItem) { _, _ in
                 app.selectedRegistryEntry = nil
             }
@@ -201,6 +215,10 @@ private struct GlobalSheets: ViewModifier {
             }
             .sheet(isPresented: $app.showCreateVolumeSheet) {
                 CreateVolumeSheet(isPresented: $app.showCreateVolumeSheet)
+                    .environment(service)
+            }
+            .sheet(isPresented: $app.showCreateNetworkSheet) {
+                CreateNetworkSheet(isPresented: $app.showCreateNetworkSheet)
                     .environment(service)
             }
     }
