@@ -12,7 +12,7 @@ struct BuildView: View {
     @State private var buildArgs: [EnvVar] = []
     @State private var logText = ""
     @State private var isBuilding = false
-    @State private var buildTask: BuildTask?
+    @State private var buildTask: ProcessStream?
     @State private var error: String?
 
     var body: some View {
@@ -184,8 +184,8 @@ struct BuildView: View {
         buildTask = task
 
         do {
-            for try await chunk in task.output {
-                logText += chunk
+            for try await line in task.lines {
+                logText += line + "\n"
             }
             service.notifyBuildFinished(tag: trimmedTag, success: true)
             await service.fetchImages()

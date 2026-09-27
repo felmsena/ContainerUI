@@ -358,3 +358,8 @@
 "Pending" = "Pendiente";
 "Starting…" = "Iniciando…";
 "Stopping…" = "Deteniendo…";
+
+/* Process runner errors */
+"Command failed with exit code %lld" = "El comando falló con código de salida %lld";
+"The command timed out" = "El comando excedió el tiempo de espera";
+"The command was cancelled" = "El comando fue cancelado";

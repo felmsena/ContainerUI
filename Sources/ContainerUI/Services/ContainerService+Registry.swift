@@ -10,7 +10,7 @@ extension ContainerService {
     /// Logs in via `--password-stdin` so the password is piped to the
     /// process instead of appearing as a `login` argument.
     func registryLogin(server: String, username: String, password: String) async throws {
-        try await shellWithStdin(
+        try await shell(
             [bin, "registry", "login", "--username", username, "--password-stdin", server],
             stdin: password
         )

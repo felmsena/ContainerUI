@@ -47,12 +47,19 @@ final class ContainerService: ObservableObject {
 
     var bin: String { containerBin }
 
+    let runner: CommandRunning
+    /// `fetchJSONOrText` command keys whose `--format json` output failed to
+    /// decode, so later polls go straight to the text form.
+    var jsonUnsupported: Set<String> = []
+
     private var refreshTask: Task<Void, Never>?
     private var updateCheckTask: Task<Void, Never>?
     private var previousRunningIds: Set<String> = []
     private var hasInitialFetch = false
 
-    init() {
+    init(runner: CommandRunning = ProcessRunner(), startBackgroundWork: Bool = true) {
+        self.runner = runner
+        guard startBackgroundWork else { return }
         requestNotificationPermission()
         startAutoRefresh()
         startUpdateCheckLoop()
@@ -103,16 +110,7 @@ final class ContainerService: ObservableObject {
             serviceError = nil
             if daemonState != .running { daemonState = .running }
         } catch {
-            let msg = error.localizedDescription.lowercased()
-            let isDaemonDown = msg.contains("connection refused")
-                            || msg.contains("not running")
-                            || msg.contains("failed to connect")
-                            || msg.contains("broken pipe")
-                            || msg.contains("no such file or directory")
-                            || msg.contains("daemon")
-                            || msg.contains("socket")
-                            || msg.contains("xpc")
-            if isDaemonDown {
+            if case CLIError.daemonNotRunning = error {
                 daemonState = .notRunning
                 serviceError = nil
                 containers = []
@@ -319,106 +317,37 @@ final class ContainerService: ObservableObject {
 
     // MARK: – Shell
 
-    /// Runs `args[0]` with `args.dropFirst()` as arguments directly via
-    /// `Process` — no `/bin/sh -c`, so metacharacters in any argument
-    /// (spaces, `;`, `$(...)`, …) are inert rather than shell-interpreted.
+    /// Runs `args[0]` with `args.dropFirst()` as arguments directly — no
+    /// `/bin/sh -c`, so metacharacters in any argument (spaces, `;`,
+    /// `$(...)`, …) are inert rather than shell-interpreted. Throws
+    /// `CLIError` on a non-zero exit, timeout or cancellation (cancelling the
+    /// calling task terminates the process). Pass `timeout: nil` for
+    /// commands that legitimately run long (pulls, `run` that pulls first).
     @discardableResult
-    func shell(_ args: [String]) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                let outPipe = Pipe()
-                let errPipe = Pipe()
-
-                process.executableURL = URL(fileURLWithPath: args[0])
-                process.arguments = Array(args.dropFirst())
-                process.standardOutput = outPipe
-                process.standardError = errPipe
-
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                process.waitUntilExit()
-                let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                if process.terminationStatus != 0 {
-                    let errMsg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "Unknown error"
-                    continuation.resume(throwing: ContainerError.failed(errMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else {
-                    continuation.resume(returning: out)
-                }
-            }
+    func shell(_ args: [String], stdin: String? = nil, timeout: TimeInterval? = ProcessRunner.defaultTimeout) async throws -> String {
+        let output = try await runner.run(args, stdin: stdin, timeout: timeout).get()
+        guard output.exitCode == 0 else {
+            throw CLIError.classify(stderr: output.stderr, code: output.exitCode)
         }
-    }
-
-    /// Like `shell(_:)`, but writes `stdin` to the process's standard input
-    /// (then closes it) instead of leaving it unconnected — for
-    /// `--password-stdin`-style flags, so a secret never appears as a
-    /// process argument (visible in `ps`) or gets logged anywhere.
-    @discardableResult
-    func shellWithStdin(_ args: [String], stdin: String) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                let outPipe = Pipe()
-                let errPipe = Pipe()
-                let inPipe = Pipe()
-
-                process.executableURL = URL(fileURLWithPath: args[0])
-                process.arguments = Array(args.dropFirst())
-                process.standardOutput = outPipe
-                process.standardError = errPipe
-                process.standardInput = inPipe
-
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                if let data = stdin.data(using: .utf8) {
-                    inPipe.fileHandleForWriting.write(data)
-                }
-                try? inPipe.fileHandleForWriting.close()
-
-                process.waitUntilExit()
-                let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                if process.terminationStatus != 0 {
-                    let errMsg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "Unknown error"
-                    continuation.resume(throwing: ContainerError.failed(errMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else {
-                    continuation.resume(returning: out)
-                }
-            }
-        }
-    }
-
-    enum ContainerError: LocalizedError {
-        case failed(String)
-        var errorDescription: String? {
-            if case .failed(let msg) = self { return msg }
-            return nil
-        }
+        return output.stdout
     }
 
     /// Runs `args + ["--format", "json"]` and decodes it; falls back to the
-    /// plain-args form (and its fixed-width parser) if the JSON attempt fails
-    /// to run or to decode — e.g. an older `container` CLI without `--format`.
+    /// plain-args form (and its fixed-width parser) if the JSON output can't
+    /// be decoded — e.g. an older `container` CLI without `--format`. Once a
+    /// command's JSON has failed to decode it isn't retried, so each poll
+    /// costs one process, not two. A service-down error is rethrown
+    /// immediately rather than retried in text form.
     func fetchJSONOrText<T>(
         args: [String],
         jsonParse: (Data) -> [T]?,
         textParse: (String) -> [T]
     ) async throws -> [T] {
-        if let jsonOutput = try? await shell(args + ["--format", "json"]),
-           let data = jsonOutput.data(using: .utf8),
-           let parsed = jsonParse(data) {
-            return parsed
+        let key = args.dropFirst().joined(separator: " ")
+        if !jsonUnsupported.contains(key) {
+            let jsonOutput = try await shell(args + ["--format", "json"])
+            if let parsed = jsonParse(Data(jsonOutput.utf8)) { return parsed }
+            jsonUnsupported.insert(key)
         }
         let output = try await shell(args)
         return textParse(output)
