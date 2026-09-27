@@ -180,6 +180,7 @@ private struct GlobalSheets: ViewModifier {
     func body(content: Content) -> some View {
         @Bindable var app = app
         content
+            .overlay { ToastOverlay() }
             .overlay {
                 if app.showCommandPalette {
                     CommandPaletteView()

@@ -137,6 +137,12 @@ struct InfoTabView: View {
 
                 // Quick actions
                 VStack(alignment: .leading, spacing: 10) {
+                    if service.pendingContainers.contains(container.id) {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Working…").font(.system(size: 12)).foregroundStyle(Theme.text2)
+                        }
+                    }
                     if container.state.isRunning {
 
                         // Known ports
@@ -221,6 +227,7 @@ struct InfoTabView: View {
                     }
                 }
                 .padding(12)
+                .disabled(service.pendingContainers.contains(container.id))
             }
         }
         .task { detail = await service.inspectContainer(container.id) }

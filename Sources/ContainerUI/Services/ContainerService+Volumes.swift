@@ -16,12 +16,12 @@ extension ContainerService {
     }
 
     func deleteVolume(_ name: String) async {
-        _ = try? await cli(CLI.volumeDelete(name))
+        do { try await cli(CLI.volumeDelete(name)) } catch { report(error, as: String(localized: "Couldn't delete volume \(name)")) }
         await fetchVolumes()
     }
 
     func pruneVolumes() async {
-        _ = try? await cli(CLI.volumePrune())
+        do { try await cli(CLI.volumePrune()) } catch { report(error, as: String(localized: "Couldn't prune volumes")) }
         await fetchVolumes()
     }
 

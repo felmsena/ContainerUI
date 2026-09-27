@@ -374,3 +374,20 @@
 "Not found" = "No encontrado";
 "Use default" = "Usar predeterminado";
 "Select the container executable" = "Seleccioná el ejecutable container";
+
+/* Action feedback */
+"Couldn't start %@" = "No se pudo iniciar %@";
+"Couldn't stop %@" = "No se pudo detener %@";
+"Couldn't restart %@" = "No se pudo reiniciar %@";
+"Couldn't remove %@" = "No se pudo eliminar %@";
+"Couldn't kill %@" = "No se pudo forzar la detención de %@";
+"Couldn't prune containers" = "No se pudieron limpiar los contenedores";
+"Couldn't delete %@" = "No se pudo eliminar %@";
+"Couldn't delete volume %@" = "No se pudo eliminar el volumen %@";
+"Couldn't prune volumes" = "No se pudieron limpiar los volúmenes";
+"Couldn't start the service" = "No se pudo iniciar el servicio";
+"Couldn't stop the service" = "No se pudo detener el servicio";
+"Could not start service: %@" = "No se pudo iniciar el servicio: %@";
+"Could not stop service: %@" = "No se pudo detener el servicio: %@";
+"Working…" = "Procesando…";
+"Dismiss" = "Descartar";

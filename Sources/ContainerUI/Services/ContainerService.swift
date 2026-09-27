@@ -43,6 +43,13 @@ final class ContainerService {
     var statsHistory: [String: [ContainerStatsSample]] = [:]
     @ObservationIgnored var lastRawStats: [String: RawStatsSample] = [:]
 
+    // Feedback
+    var toasts: [Toast] = []
+    /// Containers with an action in flight (start/stop/restart/remove/kill).
+    var pendingContainers: Set<String> = []
+    /// Containers the user just stopped from the app — no "stopped" alert.
+    @ObservationIgnored private var expectedStops: Set<String> = []
+
     // Updates
     var availableUpdate: GitHubReleaseInfo?
 
@@ -124,19 +131,25 @@ final class ContainerService {
             let builder = listed.first(where: \.isBuilder)
             update(\.builderContainer, builder)
 
+            let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
             if hasInitialFetch {
-                let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
-                let stopped = previousRunningIds.subtracting(newRunning)
-                for id in stopped { notifyContainerStopped(id) }
+                for id in Self.unexpectedStops(previous: previousRunningIds, current: newRunning, expected: expectedStops) {
+                    notifyContainerStopped(id)
+                }
             }
-
-            previousRunningIds = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
+            // Expectations are consumed once the container is seen stopped.
+            expectedStops.formIntersection(newRunning)
+            previousRunningIds = newRunning
             hasInitialFetch = true
             update(\.containers, newContainers)
             update(\.serviceError, nil)
             update(\.daemonState, .running)
         } catch {
             if case CLIError.daemonNotRunning = error {
+                // Start over once the service returns, rather than notifying
+                // for every container that was running before it went down.
+                hasInitialFetch = false
+                previousRunningIds = []
                 update(\.daemonState, .notRunning)
                 update(\.serviceError, nil)
                 update(\.containers, [])
@@ -156,7 +169,7 @@ final class ContainerService {
             await fetchContainers()
         } catch {
             daemonState = .notRunning
-            serviceError = "Could not start service: \(error.localizedDescription)"
+            serviceError = String(localized: "Could not start service: \(error.localizedDescription)")
         }
     }
 
@@ -170,18 +183,45 @@ final class ContainerService {
         } catch {
             // If stop fails, re-check actual state
             await fetchContainers()
-            serviceError = "Could not stop service: \(error.localizedDescription)"
+            serviceError = String(localized: "Could not stop service: \(error.localizedDescription)")
         }
     }
 
+    // MARK: – Container actions
+    //
+    // Each action marks the container as pending (the card shows a spinner
+    // and disables its buttons), reports failures as a toast instead of
+    // swallowing them, and refreshes the list afterwards.
+
     func start(_ id: String) async {
-        _ = try? await cli(CLI.start(id))
-        await fetchContainers()
+        await performContainerAction(id, failure: String(localized: "Couldn't start \(id)")) {
+            try await self.cli(CLI.start(id))
+        }
     }
 
     func stop(_ id: String) async {
-        _ = try? await cli(CLI.stop(id))
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't stop \(id)")) {
+            try await self.cli(CLI.stop(id))
+        }
+    }
+
+    private func performContainerAction(_ id: String, failure: String, _ action: @escaping () async throws -> Void) async {
+        pendingContainers.insert(id)
+        defer { pendingContainers.remove(id) }
+        do {
+            try await action()
+        } catch {
+            expectedStops.remove(id)
+            report(error, as: failure)
+        }
         await fetchContainers()
+    }
+
+    /// Ids that were running, aren't any more, and weren't stopped by the
+    /// user from this app — the ones worth a "Container stopped" alert.
+    nonisolated static func unexpectedStops(previous: Set<String>, current: Set<String>, expected: Set<String>) -> Set<String> {
+        previous.subtracting(current).subtracting(expected)
     }
 
     /// Refreshes the given sidebar section (⌘R refreshes the visible one).
@@ -196,24 +236,52 @@ final class ContainerService {
     }
 
     func restart(_ id: String) async {
-        _ = try? await cli(CLI.stop(id))
-        _ = try? await cli(CLI.start(id))
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't restart \(id)")) {
+            try await self.cli(CLI.stop(id))
+            try await self.cli(CLI.start(id))
+        }
     }
 
     func remove(_ id: String) async {
-        _ = try? await cli(CLI.delete(id))
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't remove \(id)")) {
+            try await self.cli(CLI.delete(id))
+        }
     }
 
     func kill(_ id: String) async {
-        _ = try? await cli(CLI.kill(id))
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't kill \(id)")) {
+            try await self.cli(CLI.kill(id))
+        }
     }
 
     func pruneContainers() async {
-        _ = try? await cli(CLI.prune())
+        do { try await cli(CLI.prune()) } catch { report(error, as: String(localized: "Couldn't prune containers")) }
         await fetchContainers()
+    }
+
+    // MARK: – Toasts
+
+    /// Shows `error` as a dismissible toast, prefixed with what failed.
+    func report(_ error: Error, as title: String) {
+        if case CLIError.cancelled = error { return }
+        showToast(Toast(title: title, message: error.localizedDescription, style: .error))
+    }
+
+    func showToast(_ toast: Toast) {
+        toasts.append(toast)
+        if toasts.count > 4 { toasts.removeFirst(toasts.count - 4) }
+        let id = toast.id
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: toast.style == .error ? 8_000_000_000 : 4_000_000_000)
+            self?.dismissToast(id)
+        }
+    }
+
+    func dismissToast(_ id: UUID) {
+        toasts.removeAll { $0.id == id }
     }
 
     func fetchLogs(for id: String, lines: Int = 200) async -> String {

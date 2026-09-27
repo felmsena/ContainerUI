@@ -19,6 +19,8 @@ struct ContainerCardView: View {
         return palette[hash % palette.count]
     }
 
+    private var isPending: Bool { service.pendingContainers.contains(container.id) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .center, spacing: 10) {
@@ -72,7 +74,9 @@ struct ContainerCardView: View {
             }
 
             HStack(spacing: 5) {
-                if container.state.isRunning {
+                if isPending {
+                    ProgressView().controlSize(.small).frame(width: 26, height: 26)
+                } else if container.state.isRunning {
                     CardButton(icon: "terminal", tooltip: "Open shell") {
                         service.openShell(for: container.id)
                     }
@@ -91,6 +95,7 @@ struct ContainerCardView: View {
                 CardButton(icon: "trash", tooltip: "Remove", destructive: true) {
                     showRemoveAlert = true
                 }
+                .disabled(isPending)
             }
         }
         .padding(.horizontal, 14)

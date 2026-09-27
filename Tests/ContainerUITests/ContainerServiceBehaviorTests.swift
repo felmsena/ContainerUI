@@ -89,4 +89,31 @@ final class ContainerServiceBehaviorTests: XCTestCase {
         XCTAssertTrue(service.containers.isEmpty)
         XCTAssertEqual(service.builderContainer?.id, "buildkit")
     }
+
+    // MARK: - Actions & notifications
+
+    func testUnexpectedStops_excludesUserInitiatedStops() {
+        let result = ContainerService.unexpectedStops(previous: ["a", "b", "c"], current: ["c"], expected: ["a"])
+        XCTAssertEqual(result, ["b"])
+    }
+
+    func testFailedAction_isReportedAsToast_andPendingIsCleared() async {
+        let runner = FakeRunner { args in
+            args.contains("stop") ? FakeRunner.fail("Error: container not found") : FakeRunner.ok(self.runningJSON)
+        }
+        let service = ContainerService(runner: runner, binary: bin, startBackgroundWork: false)
+        await service.stop("web")
+        XCTAssertEqual(service.toasts.count, 1)
+        XCTAssertEqual(service.toasts.first?.style, .error)
+        XCTAssertEqual(service.toasts.first?.message, "Error: container not found")
+        XCTAssertTrue(service.pendingContainers.isEmpty)
+    }
+
+    func testRemove_isSingleForcedDelete() async {
+        let runner = FakeRunner { _ in FakeRunner.ok("[]") }
+        let service = ContainerService(runner: runner, binary: bin, startBackgroundWork: false)
+        await service.remove("web")
+        XCTAssertEqual(runner.calls.first, [bin, "delete", "--force", "web"])
+        XCTAssertTrue(service.toasts.isEmpty)
+    }
 }

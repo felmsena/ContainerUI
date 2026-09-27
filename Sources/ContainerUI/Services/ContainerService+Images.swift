@@ -22,7 +22,7 @@ extension ContainerService {
     }
 
     func deleteImage(_ ref: String) async {
-        _ = try? await cli(CLI.imageDelete(ref))
+        do { try await cli(CLI.imageDelete(ref)) } catch { report(error, as: String(localized: "Couldn't delete \(ref)")) }
         await fetchImages()
     }
 
@@ -31,7 +31,9 @@ extension ContainerService {
     /// what the toolbar shows and whose `--all` would also delete the
     /// system images Apple Container needs.
     func removeImages(_ refs: [String]) async {
-        for ref in refs { _ = try? await cli(CLI.imageDelete(ref)) }
+        for ref in refs {
+            do { try await cli(CLI.imageDelete(ref)) } catch { report(error, as: String(localized: "Couldn't delete \(ref)")) }
+        }
         await fetchImages()
     }
 

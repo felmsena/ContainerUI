@@ -32,13 +32,13 @@ extension ContainerService {
     }
 
     func startService() async {
-        _ = try? await cli(CLI.systemStart(), timeout: nil)
+        do { try await cli(CLI.systemStart(), timeout: nil) } catch { report(error, as: String(localized: "Couldn't start the service")) }
         await fetchSystemInfo()
         await fetchContainers()
     }
 
     func stopService() async {
-        _ = try? await cli(CLI.systemStop())
+        do { try await cli(CLI.systemStop()) } catch { report(error, as: String(localized: "Couldn't stop the service")) }
         await fetchSystemInfo()
         await fetchContainers()
     }
