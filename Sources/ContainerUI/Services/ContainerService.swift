@@ -2,8 +2,6 @@ import Foundation
 import SwiftUI
 import UserNotifications
 
-let containerBin = "/opt/homebrew/bin/container"
-
 enum DaemonState {
     case unknown
     case notInstalled
@@ -46,7 +44,10 @@ final class ContainerService: ObservableObject {
     // Compose-lite (per compose-container-name, e.g. "<group>-<service>")
     @Published var composeState: [String: ComposeServiceState] = [:]
 
-    var bin: String { containerBin }
+    /// Path of the `container` CLI in use (see `ContainerBinary`). When it
+    /// isn't installed this is the first default location, for display.
+    @Published private(set) var bin: String = ContainerBinary.candidates[0]
+    @Published private(set) var isBinaryInstalled = false
 
     let runner: CommandRunning
     /// `fetchJSONOrText` command keys whose `--format json` output failed to
@@ -60,6 +61,7 @@ final class ContainerService: ObservableObject {
 
     init(runner: CommandRunning = ProcessRunner(), startBackgroundWork: Bool = true) {
         self.runner = runner
+        reloadBinaryPath()
         guard startBackgroundWork else { return }
         requestNotificationPermission()
         startAutoRefresh()
@@ -68,6 +70,14 @@ final class ContainerService: ObservableObject {
     deinit {
         refreshTask?.cancel()
         updateCheckTask?.cancel()
+    }
+
+    /// Re-resolves the CLI location, e.g. after the user picks a custom path.
+    func reloadBinaryPath() {
+        let resolved = ContainerBinary.resolve()
+        bin = resolved ?? ContainerBinary.candidates[0]
+        isBinaryInstalled = resolved != nil
+        jsonUnsupported = []
     }
 
     func startAutoRefresh() {
@@ -83,7 +93,8 @@ final class ContainerService: ObservableObject {
     // MARK: – Containers
 
     func fetchContainers() async {
-        guard FileManager.default.fileExists(atPath: containerBin) else {
+        if !isBinaryInstalled { reloadBinaryPath() }  // picks up a fresh install
+        guard isBinaryInstalled else {
             daemonState = .notInstalled
             serviceError = nil
             containers = []

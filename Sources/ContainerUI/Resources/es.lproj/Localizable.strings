@@ -369,3 +369,8 @@
 "Remove %lld unused images?" = "¿Eliminar %lld imágenes sin uso?";
 "Remove all unused volumes?" = "¿Eliminar todos los volúmenes sin uso?";
 "Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone." = "Se eliminarán todos los volúmenes que no use ningún contenedor, incluidos sus datos. Esta acción no se puede deshacer.";
+
+/* Binary location */
+"Not found" = "No encontrado";
+"Use default" = "Usar predeterminado";
+"Select the container executable" = "Seleccioná el ejecutable container";

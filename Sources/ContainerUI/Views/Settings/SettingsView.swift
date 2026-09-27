@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("notifyPullFinished") private var notifyPullFinished = false
     @AppStorage("autoCheckForUpdates") private var autoCheckForUpdates = true
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system
+    @AppStorage(ContainerBinary.overrideKey) private var customBinaryPath = ""
     @State private var isCheckingForUpdates = false
     @EnvironmentObject var service: ContainerService
 
@@ -23,7 +24,33 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 SectionCard(title: "Binary") {
-                    KeyValueRow(key: String(localized: "Path"), value: containerBin)
+                    HStack(spacing: 8) {
+                        Text("Path")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 90, alignment: .leading)
+                        Text(service.bin)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(service.isBinaryInstalled ? Theme.text : Theme.danger)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                        if !service.isBinaryInstalled {
+                            Text("Not found")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Theme.danger)
+                        }
+                        Spacer()
+                        Button("Choose…", action: chooseBinary)
+                            .controlSize(.small)
+                        if !customBinaryPath.isEmpty {
+                            Button("Use default") {
+                                customBinaryPath = ""
+                                service.reloadBinaryPath()
+                            }
+                            .controlSize(.small)
+                        }
+                    }
 
                     Divider()
 
@@ -144,7 +171,7 @@ struct SettingsView: View {
                                 Task {
                                     _ = try? await service.shell([
                                         "/usr/bin/osascript", "-e",
-                                        "do shell script \"\(containerBin) system dns create local\" with administrator privileges"
+                                        "do shell script \"\(service.bin) system dns create local\" with administrator privileges"
                                     ])
                                 }
                             }
@@ -154,7 +181,7 @@ struct SettingsView: View {
                                 Task {
                                     _ = try? await service.shell([
                                         "/usr/bin/osascript", "-e",
-                                        "do shell script \"\(containerBin) system dns delete local\" with administrator privileges"
+                                        "do shell script \"\(service.bin) system dns delete local\" with administrator privileges"
                                     ])
                                 }
                             }
@@ -233,6 +260,19 @@ struct SettingsView: View {
             }
             .environmentObject(service)
         }
+    }
+
+    private func chooseBinary() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: "/usr/local/bin")
+        panel.message = String(localized: "Select the container executable")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        customBinaryPath = url.path
+        service.reloadBinaryPath()
+        Task { await service.fetchContainers() }
     }
 
     private func loadRegistryLogins() async {
