@@ -5,6 +5,11 @@ struct SystemStatusInfo {
     let appRoot: String
     let installRoot: String
     let apiserverVersion: String
+    /// Host details and resource counts — only reported by CLI 1.4+.
+    var hostCPUs: Int? = nil
+    var containersRunning: Int? = nil
+    var containersTotal: Int? = nil
+    var imageCount: Int? = nil
 
     var isRunning: Bool { status == "running" }
 }

@@ -14,8 +14,9 @@ enum DaemonState {
 
 @MainActor
 final class ContainerService: ObservableObject {
-    // Containers
+    // Containers (user containers only — see `builderContainer`)
     @Published var containers: [ContainerInfo] = []
+    @Published var builderContainer: ContainerInfo?
     @Published var isLoading = false
     @Published var serviceError: String?
     @Published var daemonState: DaemonState = .unknown
@@ -92,11 +93,14 @@ final class ContainerService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let newContainers = try await fetchJSONOrText(
+            let listed = try await fetchJSONOrText(
                 args: [bin, "list", "--all"],
                 jsonParse: Self.parseContainerListJSON,
                 textParse: Self.parseContainerList
             )
+            let newContainers = listed.filter { !$0.isBuilder }
+            let builder = listed.first(where: \.isBuilder)
+            if builderContainer != builder { builderContainer = builder }
 
             if hasInitialFetch {
                 let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
@@ -415,12 +419,15 @@ final class ContainerService: ObservableObject {
             struct ImageRef: Decodable { let reference: String }
             struct Platform: Decodable { let os: String; let architecture: String }
             struct Resources: Decodable { let cpus: Int; let memoryInBytes: Int }
+            struct Mount: Decodable { let source: String }
             let image: ImageRef
             let platform: Platform
             let resources: Resources
+            let labels: [String: String]?
+            let mounts: [Mount]?
         }
         struct Status: Decodable {
-            struct NetworkStatus: Decodable { let ipv4Address: String? }
+            struct NetworkStatus: Decodable { let ipv4Address: String?; let network: String? }
             let networks: [NetworkStatus]
             let state: String
             let startedDate: String?
@@ -442,7 +449,10 @@ final class ContainerService: ObservableObject {
                 ip: entry.status.networks.first?.ipv4Address ?? "",
                 cpus: entry.configuration.resources.cpus,
                 memory: formatBytes(entry.configuration.resources.memoryInBytes),
-                started: entry.status.startedDate ?? ""
+                started: entry.status.startedDate ?? "",
+                labels: entry.configuration.labels ?? [:],
+                networks: entry.status.networks.compactMap(\.network),
+                mountSources: (entry.configuration.mounts ?? []).map(\.source).filter { !$0.isEmpty }
             )
         }
     }

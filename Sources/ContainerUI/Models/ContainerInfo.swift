@@ -11,6 +11,19 @@ struct ContainerInfo: Identifiable, Hashable {
     let cpus: Int
     let memory: String
     let started: String
+    var labels: [String: String] = [:]
+    /// Names of the networks the container is attached to.
+    var networks: [String] = []
+    /// Host-side sources of the container's mounts (for named volumes, the
+    /// volume's image file — see `VolumeInfo.source`).
+    var mountSources: [String] = []
+
+    /// The BuildKit container Apple Container runs behind `container build`.
+    /// It's infrastructure, not a user container, so it's listed separately.
+    var isBuilder: Bool {
+        labels["com.apple.container.resource.role"] == "builder"
+            || (id == "buildkit" && image.contains("container-builder-shim"))
+    }
 
     var shortImage: String {
         image

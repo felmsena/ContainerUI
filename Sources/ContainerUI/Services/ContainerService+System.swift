@@ -51,11 +51,17 @@ extension ContainerService {
             values[parts[0]] = parts[1...].joined(separator: " ")
         }
         guard let status = values["status"] else { return nil }
+        // CLI 1.4 prefixes keys with their group ("paths.appRoot",
+        // "server.version"); older versions used flat keys.
         return SystemStatusInfo(
             status:           status,
-            appRoot:          values["appRoot"] ?? "",
-            installRoot:      values["installRoot"] ?? "",
-            apiserverVersion: values["apiserver.version"] ?? ""
+            appRoot:          values["paths.appRoot"] ?? values["appRoot"] ?? "",
+            installRoot:      values["paths.installRoot"] ?? values["installRoot"] ?? "",
+            apiserverVersion: values["server.version"] ?? values["apiserver.version"] ?? "",
+            hostCPUs:          values["host.cpus"].flatMap { Int($0) },
+            containersRunning: values["containers.running"].flatMap { Int($0) },
+            containersTotal:   values["containers.total"].flatMap { Int($0) },
+            imageCount:        values["images.total"].flatMap { Int($0) }
         )
     }
 
@@ -110,15 +116,38 @@ extension ContainerService {
 
     // MARK: – JSON parsing
 
-    private struct SystemStatusJSON: Decodable {
+    /// Pre-1.4 shape: flat keys.
+    private struct SystemStatusFlatJSON: Decodable {
         let status: String
         let appRoot: String
         let installRoot: String
         let apiServerVersion: String
     }
 
+    /// 1.4 shape: grouped into `paths`, `server`, `host`, `resources`.
+    private struct SystemStatusJSON: Decodable {
+        struct Paths: Decodable { let appRoot: String; let installRoot: String }
+        struct Component: Decodable { let version: String }
+        struct Host: Decodable { let cpus: Int? }
+        struct Resources: Decodable { let containersRunning: Int?; let containersTotal: Int?; let images: Int? }
+        let status: String
+        let paths: Paths
+        let server: Component
+        let host: Host?
+        let resources: Resources?
+    }
+
     nonisolated static func parseSystemStatusJSON(_ data: Data) -> SystemStatusInfo? {
-        guard let s = try? JSONDecoder().decode(SystemStatusJSON.self, from: data) else { return nil }
+        let decoder = JSONDecoder()
+        if let s = try? decoder.decode(SystemStatusJSON.self, from: data) {
+            return SystemStatusInfo(
+                status: s.status, appRoot: s.paths.appRoot, installRoot: s.paths.installRoot,
+                apiserverVersion: s.server.version, hostCPUs: s.host?.cpus,
+                containersRunning: s.resources?.containersRunning,
+                containersTotal: s.resources?.containersTotal, imageCount: s.resources?.images
+            )
+        }
+        guard let s = try? decoder.decode(SystemStatusFlatJSON.self, from: data) else { return nil }
         return SystemStatusInfo(status: s.status, appRoot: s.appRoot,
                                  installRoot: s.installRoot, apiserverVersion: s.apiServerVersion)
     }
