@@ -26,6 +26,15 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .settings:   return "gearshape"
         }
     }
+
+    /// Sections with a list → detail layout. The rest are single full-width
+    /// pages and use a two-column split, so no empty detail pane eats space.
+    var hasDetail: Bool {
+        switch self {
+        case .containers, .images, .volumes, .networks, .registry, .groups: return true
+        case .build, .stats, .logs, .settings: return false
+        }
+    }
 }
 
 struct ContentView: View {
@@ -73,14 +82,24 @@ struct ContentView: View {
     }
 
     private var splitView: some View {
-        @Bindable var app = app
-        return NavigationSplitView {
-            SidebarView(selected: $app.sidebarItem)
-                .navigationSplitViewColumnWidth(min: 224, ideal: 248, max: 280)
-        } content: {
-            contentColumn
-        } detail: {
-            detailColumn
+        Group {
+            if app.sidebarItem.hasDetail {
+                NavigationSplitView {
+                    sidebar
+                } content: {
+                    contentColumn
+                        .navigationSplitViewColumnWidth(min: 320, ideal: 420)
+                } detail: {
+                    detailColumn
+                        .navigationSplitViewColumnWidth(min: 360, ideal: 480)
+                }
+            } else {
+                NavigationSplitView {
+                    sidebar
+                } detail: {
+                    contentColumn
+                }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -92,6 +111,12 @@ struct ContentView: View {
         .tint(Theme.accent)
         .background(Theme.bg)
         .toolbarBackground(Theme.bg, for: .windowToolbar)
+    }
+
+    private var sidebar: some View {
+        @Bindable var app = app
+        return SidebarView(selected: $app.sidebarItem)
+            .navigationSplitViewColumnWidth(min: 224, ideal: 248, max: 280)
     }
 
     @ViewBuilder
