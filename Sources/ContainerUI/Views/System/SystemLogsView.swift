@@ -24,6 +24,7 @@ struct SystemLogsView: View {
                     Label("Follow", systemImage: follow ? "dot.radiowaves.left.and.right" : "pause.circle")
                 }
                 .toggleStyle(.button)
+                .tint(Theme.accent)
                 .help("Stream new lines as they're written")
             }
             .padding(.horizontal, 12)

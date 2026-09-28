@@ -22,40 +22,56 @@ struct DetailView: View {
 
     private var iconInfo: (symbol: String, color: Color) { imageIcon(for: container.image) }
 
+    private var header: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11)
+                    .fill(iconInfo.color.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: iconInfo.symbol)
+                    .font(.system(size: 18))
+                    .foregroundStyle(iconInfo.color)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(container.id)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(container.image)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.text2)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+    }
+
+    private var tabs: some View {
+        BrandTabs(
+            items: DetailTab.allCases.map {
+                ($0, LocalizedStringKey($0.rawValue), $0 != .shell || container.state.isRunning)
+            },
+            selection: $tab
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 11)
-                        .fill(iconInfo.color.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: iconInfo.symbol)
-                        .font(.system(size: 18))
-                        .foregroundStyle(iconInfo.color)
+            // Side by side when the column is wide enough; tabs drop under
+            // the title otherwise, so neither the name nor the tabs vanish.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    header.frame(minWidth: 160, alignment: .leading)
+                    Spacer(minLength: 12)
+                    tabs
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(container.id)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(container.image)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.text2)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                VStack(alignment: .leading, spacing: 10) {
+                    header
+                    tabs
                 }
-                .layoutPriority(1)
-
-                Spacer(minLength: 12)
-
-                BrandTabs(
-                    items: DetailTab.allCases.map {
-                        ($0, LocalizedStringKey($0.rawValue), $0 != .shell || container.state.isRunning)
-                    },
-                    selection: $tab
-                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

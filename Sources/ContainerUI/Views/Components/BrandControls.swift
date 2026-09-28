@@ -88,6 +88,8 @@ struct BrandTabs<T: Hashable>: View {
         }
         .padding(3)
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 10))
+        // Never squeeze the labels away; neighbours (titles) truncate instead.
+        .fixedSize()
         .accessibilityElement(children: .contain)
     }
 }
