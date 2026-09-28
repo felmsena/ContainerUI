@@ -6,7 +6,9 @@ struct ContainerListView: View {
     @Binding var selected: ContainerInfo?
     @State private var searchText = ""
     @State private var showPruneAlert = false
-    @FocusState private var isListFocused: Bool
+    /// ⌘-click adds containers here for bulk actions.
+    @State private var multiSelection: Set<String> = []
+    @State private var showBulkRemoveAlert = false
 
     private var filtered: [ContainerInfo] {
         guard !searchText.isEmpty else { return service.containers }
@@ -59,26 +61,34 @@ struct ContainerListView: View {
             } else if service.containers.isEmpty {
                 daemonEmptyState
             } else {
+                if multiSelection.count > 1 { bulkBar }
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(filtered) { container in
                             ContainerCardView(
                                 container: container,
-                                isSelected: selected?.id == container.id
+                                isSelected: selected?.id == container.id || multiSelection.contains(container.id)
                             )
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                selected = container
-                                isListFocused = true
+                                if NSEvent.modifierFlags.contains(.command) {
+                                    toggleMulti(container)
+                                } else {
+                                    multiSelection = []
+                                    selected = container
+                                }
                             }
                         }
                     }
                     .padding(12)
                 }
                 .background(Theme.bg)
-                .focusable()
-                .focusEffectDisabled()
-                .focused($isListFocused)
+                .listKeyboardNavigation(items: filtered, selection: $selected)
+                .onKeyPress(.escape) {
+                    guard !multiSelection.isEmpty else { return .ignored }
+                    multiSelection = []
+                    return .handled
+                }
                 .onKeyPress(.space) {
                     guard let selected else { return .ignored }
                     Task {
@@ -132,6 +142,61 @@ struct ContainerListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This action cannot be undone.")
+        }
+    }
+
+    // MARK: – Bulk actions
+
+    private var bulkTargets: [ContainerInfo] {
+        service.containers.filter { multiSelection.contains($0.id) }
+    }
+
+    private func toggleMulti(_ container: ContainerInfo) {
+        if multiSelection.isEmpty, let current = selected { multiSelection.insert(current.id) }
+        if multiSelection.contains(container.id) { multiSelection.remove(container.id) } else { multiSelection.insert(container.id) }
+        selected = container
+    }
+
+    private var bulkBar: some View {
+        let targets = bulkTargets
+        return HStack(spacing: 8) {
+            Text("\(targets.count) selected")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.text)
+            Spacer()
+            Button("Start") {
+                for c in targets where !c.state.isRunning { Task { await service.start(c.id) } }
+            }
+            .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
+            .disabled(!targets.contains { !$0.state.isRunning })
+            Button("Stop") {
+                for c in targets where c.state.isRunning { Task { await service.stop(c.id) } }
+            }
+            .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
+            .disabled(!targets.contains { $0.state.isRunning })
+            Button("Remove…") { showBulkRemoveAlert = true }
+                .buttonStyle(BrandButtonStyle(kind: .destructive, compact: true))
+            Button {
+                multiSelection = []
+            } label: {
+                Image(systemName: "xmark").font(.system(size: 10, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Theme.text3)
+            .help("Clear selection (Esc)")
+            .accessibilityLabel("Clear selection")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.accentSoft)
+        .alert("Remove \(targets.count) containers?", isPresented: $showBulkRemoveAlert) {
+            Button("Remove", role: .destructive) {
+                for c in targets { Task { await service.remove(c.id) } }
+                multiSelection = []
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(targets.map(\.id).joined(separator: ", "))
         }
     }
 

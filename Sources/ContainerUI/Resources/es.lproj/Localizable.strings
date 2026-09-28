@@ -547,3 +547,10 @@
 "of %@ allocated" = "de %@ asignados";
 "No containers running." = "No hay contenedores en ejecución.";
 "Measuring…" = "Midiendo…";
+
+/* Bulk actions */
+"%lld selected" = "%lld seleccionados";
+"Remove…" = "Eliminar…";
+"Clear selection (Esc)" = "Quitar selección (Esc)";
+"Clear selection" = "Quitar selección";
+"Remove %lld containers?" = "¿Eliminar %lld contenedores?";

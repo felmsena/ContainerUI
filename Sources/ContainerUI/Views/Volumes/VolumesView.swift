@@ -38,6 +38,7 @@ struct VolumesView: View {
                     .padding(12)
                 }
                 .background(Theme.bg)
+                .listKeyboardNavigation(items: filtered, selection: $selected)
             }
         }
         .navigationTitle("Volumes")

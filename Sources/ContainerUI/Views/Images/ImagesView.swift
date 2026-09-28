@@ -80,6 +80,7 @@ struct ImagesView: View {
                     .padding(12)
                 }
                 .background(Theme.bg)
+                .listKeyboardNavigation(items: filtered, selection: $selected)
             }
         }
         .navigationTitle("Images")
