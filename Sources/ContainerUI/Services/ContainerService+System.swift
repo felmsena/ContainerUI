@@ -104,51 +104,14 @@ extension ContainerService {
     }
 
     nonisolated static func parseSystemDf(_ output: String) -> [SystemDfRow] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let typeOff        = columnOffset("TYPE",        in: header),
-            let totalOff       = columnOffset("TOTAL",       in: header),
-            let activeOff      = columnOffset("ACTIVE",      in: header),
-            let sizeOff        = columnOffset("SIZE",        in: header),
-            let reclaimOff     = columnOffset("RECLAIMABLE", in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > typeOff else { return nil }
-            let type       = field(chars, from: typeOff,    to: totalOff)
-            let total      = field(chars, from: totalOff,   to: activeOff)
-            let active     = field(chars, from: activeOff,  to: sizeOff)
-            let size       = field(chars, from: sizeOff,    to: reclaimOff)
-            let reclaimable = field(chars, from: reclaimOff, to: nil)
-            guard !type.isEmpty else { return nil }
-            return SystemDfRow(type: type, total: total, active: active,
-                               size: size, reclaimable: reclaimable)
+        tableRows(output, columns: ["TYPE", "TOTAL", "ACTIVE", "SIZE", "RECLAIMABLE"]).map { f in
+            SystemDfRow(type: f[0], total: f[1], active: f[2], size: f[3], reclaimable: f[4])
         }
     }
 
     nonisolated static func parseVersionRows(_ output: String) -> [VersionRow] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let compOff    = columnOffset("COMPONENT", in: header),
-            let verOff     = columnOffset("VERSION",   in: header),
-            let buildOff   = columnOffset("BUILD",     in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > compOff else { return nil }
-            let comp  = field(chars, from: compOff,  to: verOff)
-            let ver   = field(chars, from: verOff,   to: buildOff)
-            let build = field(chars, from: buildOff, to: nil)
-            guard !comp.isEmpty else { return nil }
-            return VersionRow(component: comp, version: ver, build: build)
+        tableRows(output, columns: ["COMPONENT", "VERSION", "BUILD"]).map { f in
+            VersionRow(component: f[0], version: f[1], build: f[2])
         }
     }
 

@@ -490,6 +490,27 @@ final class ContainerService {
         return header.distance(from: header.startIndex, to: range.lowerBound)
     }
 
+    /// Parses the CLI's fixed-width table output: finds each column's offset
+    /// in the header line and slices every data row at those offsets.
+    /// Returns one array of trimmed fields per row, in `columns` order;
+    /// rows whose first field is empty are skipped. Empty when the output
+    /// has no data rows or the header lacks one of the columns.
+    nonisolated static func tableRows(_ output: String, columns: [String]) -> [[String]] {
+        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
+        guard lines.count > 1 else { return [] }
+        let offsets = columns.map { columnOffset($0, in: lines[0]) }
+        guard !offsets.isEmpty, offsets.allSatisfy({ $0 != nil }) else { return [] }
+        let starts = offsets.map { $0! }
+        return lines.dropFirst().compactMap { line in
+            let chars = Array(line)
+            guard chars.count > starts[0] else { return nil }
+            let fields = starts.indices.map { i in
+                field(chars, from: starts[i], to: i + 1 < starts.count ? starts[i + 1] : nil)
+            }
+            return fields[0].isEmpty ? nil : fields
+        }
+    }
+
     nonisolated static func field(_ chars: [Character], from: Int, to: Int?) -> String {
         let start = min(from, chars.count)
         let end   = to.map { min($0, chars.count) } ?? chars.count
@@ -500,40 +521,9 @@ final class ContainerService {
     // MARK: – Container parsing
 
     nonisolated static func parseContainerList(_ output: String) -> [ContainerInfo] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let idOff      = columnOffset("ID",      in: header),
-            let imageOff   = columnOffset("IMAGE",   in: header),
-            let osOff      = columnOffset("OS",      in: header),
-            let archOff    = columnOffset("ARCH",    in: header),
-            let stateOff   = columnOffset("STATE",   in: header),
-            let ipOff      = columnOffset("IP",      in: header),
-            let cpusOff    = columnOffset("CPUS",    in: header),
-            let memOff     = columnOffset("MEMORY",  in: header),
-            let startedOff = columnOffset("STARTED", in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > idOff else { return nil }
-            let id      = field(chars, from: idOff,      to: imageOff)
-            let image   = field(chars, from: imageOff,   to: osOff)
-            let os      = field(chars, from: osOff,      to: archOff)
-            let arch    = field(chars, from: archOff,    to: stateOff)
-            let state   = field(chars, from: stateOff,   to: ipOff)
-            let ip      = field(chars, from: ipOff,      to: cpusOff)
-            let cpus    = field(chars, from: cpusOff,    to: memOff)
-            let memory  = field(chars, from: memOff,     to: startedOff)
-            let started = field(chars, from: startedOff, to: nil)
-            guard !id.isEmpty else { return nil }
-            return ContainerInfo(
-                id: id, image: image, os: os, arch: arch,
-                state: ContainerState(raw: state),
-                ip: ip, cpus: Int(cpus) ?? 0, memory: memory, started: started
-            )
+        tableRows(output, columns: ["ID", "IMAGE", "OS", "ARCH", "STATE", "IP", "CPUS", "MEMORY", "STARTED"]).map { f in
+            ContainerInfo(id: f[0], image: f[1], os: f[2], arch: f[3], state: ContainerState(raw: f[4]),
+                          ip: f[5], cpus: Int(f[6]) ?? 0, memory: f[7], started: f[8])
         }
     }
 

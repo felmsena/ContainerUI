@@ -34,26 +34,8 @@ extension ContainerService {
     }
 
     nonisolated static func parseVolumeList(_ output: String) -> [VolumeInfo] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let nameOff    = columnOffset("NAME",    in: header),
-            let typeOff    = columnOffset("TYPE",    in: header),
-            let driverOff  = columnOffset("DRIVER",  in: header),
-            let optionsOff = columnOffset("OPTIONS", in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > nameOff else { return nil }
-            let name    = field(chars, from: nameOff,    to: typeOff)
-            let type    = field(chars, from: typeOff,    to: driverOff)
-            let driver  = field(chars, from: driverOff,  to: optionsOff)
-            let options = field(chars, from: optionsOff, to: nil)
-            guard !name.isEmpty else { return nil }
-            return VolumeInfo(name: name, type: type, driver: driver, options: options)
+        tableRows(output, columns: ["NAME", "TYPE", "DRIVER", "OPTIONS"]).map { f in
+            VolumeInfo(name: f[0], type: f[1], driver: f[2], options: f[3])
         }
     }
 
