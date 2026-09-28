@@ -524,3 +524,19 @@
 "Couldn't start the builder" = "No se pudo iniciar el builder";
 "Couldn't stop the builder" = "No se pudo detener el builder";
 "Couldn't delete the builder" = "No se pudo eliminar el builder";
+
+/* Command palette */
+"Run %@" = "Ejecutar %@";
+"Go to %@" = "Ir a %@";
+"Section" = "Sección";
+"Run container…" = "Ejecutar contenedor…";
+"Pull image…" = "Descargar imagen…";
+"Build image…" = "Compilar imagen…";
+"Create volume…" = "Crear volumen…";
+"Create network…" = "Crear red…";
+"Stop the container service" = "Detener el servicio de contenedores";
+"Start the container service" = "Iniciar el servicio de contenedores";
+"Restart %@" = "Reiniciar %@";
+"Open shell in %@" = "Abrir shell en %@";
+"Search or type a command…" = "Buscá o escribí un comando…";
+"run" = "ejecutar";
