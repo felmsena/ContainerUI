@@ -19,13 +19,15 @@ struct ResourceDashboard: View {
         let totalMem = rows.reduce(0) { $0 + $1.stats.memoryUsageBytes }
         let totalLimit = rows.reduce(0) { $0 + $1.stats.memoryLimitBytes }
         let hostCPUs = service.systemStatus?.hostCPUs
+        // Until the first sample lands, show a dash instead of a misleading zero.
+        let measuring = !running.isEmpty && rows.isEmpty
 
         SectionCard(title: "Resources") {
             HStack(spacing: 12) {
                 tile(label: "Running", value: "\(running.count)", icon: "square.stack.3d.up")
-                tile(label: "CPU", value: String(format: "%.1f%%", totalCPU), icon: "cpu",
+                tile(label: "CPU", value: measuring ? "—" : String(format: "%.1f%%", totalCPU), icon: "cpu",
                      detail: hostCPUs.map { String(localized: "\($0) host cores") })
-                tile(label: "Memory", value: formatBytes(totalMem), icon: "memorychip",
+                tile(label: "Memory", value: measuring ? "—" : formatBytes(totalMem), icon: "memorychip",
                      detail: totalLimit > 0 ? String(localized: "of \(formatBytes(totalLimit)) allocated") : nil)
             }
 
