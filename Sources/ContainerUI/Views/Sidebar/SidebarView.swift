@@ -184,8 +184,7 @@ struct SidebarView: View {
                 if let (label, handler) = action {
                     Button(label, action: handler)
                         .font(.system(size: 11))
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
+                        .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                 }
             }
             Text(subtitle)

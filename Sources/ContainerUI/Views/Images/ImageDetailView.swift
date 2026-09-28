@@ -60,7 +60,7 @@ struct ImageDetailView: View {
 
                 // Details
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Details")
+                    SectionHeader("Details")
 
                     infoRow(label: "Full name", value: image.name)
                     infoRow(label: "Tag",       value: image.tag)
@@ -75,7 +75,7 @@ struct ImageDetailView: View {
 
                 // Container usage
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Used by")
+                    SectionHeader("Used by")
 
                     if usingContainers.isEmpty {
                         HStack(spacing: 8) {
@@ -115,7 +115,7 @@ struct ImageDetailView: View {
 
                 // Pull command
                 VStack(alignment: .leading, spacing: 10) {
-                    sectionHeader("Pull command")
+                    SectionHeader("Pull command")
 
                     copyableCode("container image pull \(image.ref)")
                 }
@@ -209,14 +209,6 @@ struct ImageDetailView: View {
             .clipShape(Capsule())
     }
 
-    @ViewBuilder
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.text3)
-            .textCase(.uppercase)
-            .tracking(0.5)
-    }
 
     @ViewBuilder
     private func infoRow(label: LocalizedStringKey, value: String) -> some View {

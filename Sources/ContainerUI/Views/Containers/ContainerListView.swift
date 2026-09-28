@@ -251,9 +251,7 @@ struct ContainerListView: View {
                     Label("Start Service", systemImage: "play.fill")
                         .frame(minWidth: 130)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .controlSize(.large)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
             }
 
         case .starting:
@@ -287,9 +285,7 @@ struct ContainerListView: View {
                     Label("Run Container", systemImage: "play.fill")
                         .frame(minWidth: 130)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .controlSize(.large)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
             }
         }
     }

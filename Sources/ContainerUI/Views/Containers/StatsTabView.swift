@@ -45,12 +45,12 @@ struct StatsTabView: View {
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(Color(hex: "#3B82F6").opacity(0.25))
+                                    .foregroundStyle(Theme.Hue.blue.opacity(0.25))
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(Color(hex: "#3B82F6"))
+                                    .foregroundStyle(Theme.Hue.blue)
                                 }
                                 .frame(height: 90)
                             }

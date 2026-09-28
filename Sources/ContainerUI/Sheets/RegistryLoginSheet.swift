@@ -63,7 +63,7 @@ struct RegistryLoginSheet: View {
                         Text(isLoggingIn ? "Logging in…" : "Log In")
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
                 .disabled(!canSubmit || isLoggingIn)
             }
         }

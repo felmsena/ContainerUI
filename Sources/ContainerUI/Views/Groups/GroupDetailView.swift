@@ -30,7 +30,7 @@ struct GroupDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    formSection("YAML") {
+                    FormSection("YAML") {
                         TextEditor(text: $text)
                             .font(.system(size: 12, design: .monospaced))
                             .frame(minHeight: 260)
@@ -77,7 +77,7 @@ struct GroupDetailView: View {
                 } label: {
                     Label("Down", systemImage: "stop.fill")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                 .disabled(isBusy || parsedGroup == nil)
 
                 Button {
@@ -92,8 +92,7 @@ struct GroupDetailView: View {
                         Text("Up")
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
                 .disabled(isBusy || parsedGroup == nil)
             }
             .padding(.horizontal, 20)
@@ -133,15 +132,6 @@ struct GroupDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.text2)
-            content()
-        }
-    }
 
     private func serviceRow(_ svc: ComposeService) -> some View {
         let state = status(for: svc)

@@ -115,13 +115,13 @@ struct MenuBarView: View {
         if service.serviceError != nil {
             Label("Error", systemImage: "exclamationmark.triangle.fill")
                 .labelStyle(.iconOnly)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warn)
                 .font(.system(size: 12))
         } else if service.isLoading {
             ProgressView().scaleEffect(0.5).frame(width: 14, height: 14)
         } else {
             Circle()
-                .fill(service.containers.isEmpty ? Color.secondary : Color.green)
+                .fill(service.containers.isEmpty ? Theme.text3 : Theme.accent)
                 .frame(width: 7, height: 7)
         }
     }
@@ -176,7 +176,7 @@ struct MenuBarContainerRow: View {
                 } label: {
                     Image(systemName: "play.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.accent)
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)

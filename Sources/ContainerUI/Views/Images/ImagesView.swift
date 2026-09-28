@@ -62,8 +62,7 @@ struct ImagesView: View {
                 if searchText.isEmpty {
                     EmptyStateView(icon: "photo.stack", title: "No images") {
                         Button("Pull an image") { app.showPullSheet = true }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Theme.accent)
+                            .buttonStyle(BrandButtonStyle(kind: .primary))
                     }
                 } else {
                     EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")

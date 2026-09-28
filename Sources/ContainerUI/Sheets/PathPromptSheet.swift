@@ -26,7 +26,7 @@ struct PathPromptSheet: View {
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.escape)
                 Button(confirmLabel, action: confirm)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(BrandButtonStyle(kind: .primary))
                     .disabled(path.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }

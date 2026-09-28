@@ -33,7 +33,7 @@ struct BuildView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     BuilderCard()
 
-                    formSection("Build context") {
+                    FormSection("Build context") {
                         HStack(spacing: 8) {
                             Text(contextDir?.path ?? String(localized: "No folder selected"))
                                 .font(.system(size: 12, design: .monospaced))
@@ -58,14 +58,14 @@ struct BuildView: View {
                         }
                     }
 
-                    formSection("Tag") {
+                    FormSection("Tag") {
                         TextField("name:tag, e.g. myapp:latest", text: $tag)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 13, design: .monospaced))
                             .disabled(isBuilding)
                     }
 
-                    formSection("Build Args (optional)") {
+                    FormSection("Build Args (optional)") {
                         PairListEditor(pairs: $buildArgs, leftPlaceholder: "KEY", rightPlaceholder: "value",
                                        separator: "=", addLabel: "Add build arg", removeLabel: "Remove build argument")
                             .disabled(isBuilding)
@@ -76,7 +76,7 @@ struct BuildView: View {
                     }
 
                     if let job {
-                        formSection(job.isRunning ? "Build log — \(job.subject)" : "Last build — \(job.subject)") {
+                        FormSection(job.isRunning ? "Build log — \(job.subject)" : "Last build — \(job.subject)") {
                             LogTextView(text: job.log)
                                 .frame(height: 300)
                                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 8))
@@ -130,15 +130,6 @@ struct BuildView: View {
         }
     }
 
-    @ViewBuilder
-    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.text2)
-            content()
-        }
-    }
 
     private func chooseFolder() {
         let panel = NSOpenPanel()

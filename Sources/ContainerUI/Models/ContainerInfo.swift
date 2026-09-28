@@ -74,9 +74,9 @@ enum ContainerState: String, Hashable {
 
     var color: Color {
         switch self {
-        case .running: return .green
+        case .running: return Theme.accent
         case .stopped: return Color(nsColor: .tertiaryLabelColor)
-        case .paused: return .orange
+        case .paused: return Theme.warn
         case .unknown: return Color(nsColor: .tertiaryLabelColor)
         }
     }

@@ -37,8 +37,7 @@ struct ExecTabView: View {
                     }
 
                     Button("Run", action: runCommand)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                         .disabled(isRunning || commandText.trimmingCharacters(in: .whitespaces).isEmpty)
 
                     Button {
@@ -46,8 +45,7 @@ struct ExecTabView: View {
                     } label: {
                         Label("Open in Terminal", systemImage: "terminal")
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)

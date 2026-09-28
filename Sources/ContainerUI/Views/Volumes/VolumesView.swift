@@ -93,11 +93,11 @@ struct VolumeRowView: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: "#D97706").opacity(0.14))
+                    .fill(Theme.Hue.volumes.opacity(0.14))
                     .frame(width: 32, height: 32)
                 Image(systemName: "externaldrive.fill")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(hex: "#D97706"))
+                    .foregroundStyle(Theme.Hue.volumes)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -184,8 +184,7 @@ struct CreateVolumeSheet: View {
                 Spacer()
                 Button("Cancel") { isPresented = false }.keyboardShortcut(.escape)
                 Button("Create") { Task { await create() } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accent)
+                    .buttonStyle(BrandButtonStyle(kind: .primary))
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
             }
         }

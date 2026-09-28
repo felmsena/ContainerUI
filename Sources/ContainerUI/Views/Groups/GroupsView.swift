@@ -24,8 +24,7 @@ struct GroupsView: View {
                     subtitle: "Create a compose-lite YAML file to run several containers together."
                 ) {
                     Button("New Group…", action: createGroup)
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
+                        .buttonStyle(BrandButtonStyle(kind: .primary))
                 }
             } else {
                 List(groupFiles, id: \.self, selection: $selected) { url in

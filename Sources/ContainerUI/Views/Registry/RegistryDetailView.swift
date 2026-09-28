@@ -75,7 +75,7 @@ struct RegistryDetailView: View {
                 // Description
                 if !entry.description.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        sectionHeader("About")
+                        SectionHeader("About")
                         Text(entry.description)
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.text)
@@ -89,7 +89,7 @@ struct RegistryDetailView: View {
 
                 // Default configuration
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Default Configuration")
+                    SectionHeader("Default Configuration")
 
                     configRow(label: "Image", value: entry.fullRef, monospaced: true)
                     configRow(label: "Memory", value: entry.defaultMemory, monospaced: true)
@@ -207,14 +207,6 @@ struct RegistryDetailView: View {
 
     // MARK: – Helpers
 
-    @ViewBuilder
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.text3)
-            .textCase(.uppercase)
-            .tracking(0.5)
-    }
 
     @ViewBuilder
     private func configRow(label: LocalizedStringKey, value: String, monospaced: Bool = false) -> some View {

@@ -145,8 +145,7 @@ struct SettingsView: View {
                                 Text("Check Now")
                             }
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                         .disabled(isCheckingForUpdates)
                     }
                 }
@@ -229,8 +228,7 @@ struct SettingsView: View {
                                         Text("Log Out")
                                     }
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                                 .disabled(loggingOutHostname != nil)
                             }
                         }
