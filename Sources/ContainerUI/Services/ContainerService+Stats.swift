@@ -20,11 +20,27 @@ extension ContainerService {
     /// (e.g. the container just stopped).
     func pollStats(for id: String) async {
         guard let output = try? await cli(CLI.stats([id])),
-              let data = output.data(using: .utf8),
-              let raw = Self.parseRawStats(data)
+              let raw = Self.parseRawStats(Data(output.utf8))
         else { return }
+        record(raw, for: id, at: Date())
+    }
 
+    /// One `container stats` call for every running container — feeds the
+    /// Stats dashboard. Containers no longer running drop out of
+    /// `latestStats`.
+    func pollAllStats() async {
+        guard let output = try? await cli(CLI.stats()),
+              let samples = Self.parseAllRawStats(Data(output.utf8))
+        else { return }
         let now = Date()
+        for (id, raw) in samples { record(raw, for: id, at: now) }
+        let live = Set(samples.map(\.id))
+        for id in latestStats.keys where !live.contains(id) { latestStats[id] = nil }
+        for id in lastRawStats.keys where !live.contains(id) { lastRawStats[id] = nil }
+    }
+
+    private func record(_ raw: (cpuUsageUsec: Int, memoryUsageBytes: Int, memoryLimitBytes: Int,
+                                networkRxBytes: Int, networkTxBytes: Int), for id: String, at now: Date) {
         let previous = lastRawStats[id]
         lastRawStats[id] = RawStatsSample(
             timestamp: now, cpuUsageUsec: raw.cpuUsageUsec,
@@ -69,6 +85,7 @@ extension ContainerService {
     // MARK: – JSON parsing
 
     private struct StatsEntryJSON: Decodable {
+        let id: String?
         let cpuUsageUsec: Int
         let memoryUsageBytes: Int
         let memoryLimitBytes: Int
@@ -85,5 +102,13 @@ extension ContainerService {
         else { return nil }
         return (entry.cpuUsageUsec, entry.memoryUsageBytes, entry.memoryLimitBytes,
                 entry.networkRxBytes, entry.networkTxBytes)
+    }
+
+    nonisolated static func parseAllRawStats(_ data: Data) -> [(id: String, raw: (cpuUsageUsec: Int, memoryUsageBytes: Int, memoryLimitBytes: Int, networkRxBytes: Int, networkTxBytes: Int))]? {
+        guard let entries = try? JSONDecoder().decode([StatsEntryJSON].self, from: data) else { return nil }
+        return entries.compactMap { e in
+            guard let id = e.id else { return nil }
+            return (id, (e.cpuUsageUsec, e.memoryUsageBytes, e.memoryLimitBytes, e.networkRxBytes, e.networkTxBytes))
+        }
     }
 }

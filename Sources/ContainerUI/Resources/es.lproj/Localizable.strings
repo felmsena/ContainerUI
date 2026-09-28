@@ -540,3 +540,10 @@
 "Open shell in %@" = "Abrir shell en %@";
 "Search or type a command…" = "Buscá o escribí un comando…";
 "run" = "ejecutar";
+
+/* Resource dashboard */
+"CPU" = "CPU";
+"%lld host cores" = "%lld núcleos en el host";
+"of %@ allocated" = "de %@ asignados";
+"No containers running." = "No hay contenedores en ejecución.";
+"Measuring…" = "Midiendo…";

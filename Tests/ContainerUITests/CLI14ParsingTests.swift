@@ -156,3 +156,15 @@ final class InspectRunSpecTests: XCTestCase {
         XCTAssertEqual(ContainerService.memorySpec(2_147_483_648), "2G")
     }
 }
+
+final class AllStatsParsingTests: XCTestCase {
+    func testParseAllRawStats_keysSamplesById() {
+        let json = """
+        [{"blockReadBytes":1679360,"blockWriteBytes":0,"cpuUsageUsec":7006,"id":"cui-test","memoryLimitBytes":268435456,
+          "memoryUsageBytes":2502656,"networkRxBytes":22734,"networkTxBytes":602,"numProcesses":2}]
+        """
+        let samples = ContainerService.parseAllRawStats(Data(json.utf8)) ?? []
+        XCTAssertEqual(samples.map(\.id), ["cui-test"])
+        XCTAssertEqual(samples.first?.raw.memoryUsageBytes, 2_502_656)
+    }
+}

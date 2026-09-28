@@ -23,14 +23,12 @@ struct SystemStatsView: View {
                                 Button("Stop service") {
                                     Task { await service.stopService() }
                                 }
-                                .buttonStyle(.bordered)
-                                .tint(Theme.danger)
+                                .buttonStyle(BrandButtonStyle(kind: .destructive, compact: true))
                             } else {
                                 Button("Start service") {
                                     Task { await service.startService() }
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(Theme.accent)
+                                .buttonStyle(BrandButtonStyle(kind: .primary, compact: true))
                             }
                         }
 
@@ -53,10 +51,13 @@ struct SystemStatsView: View {
                             Button("Start service") {
                                 Task { await service.startService() }
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Theme.accent)
+                            .buttonStyle(BrandButtonStyle(kind: .primary, compact: true))
                         }
                     }
+                }
+
+                if service.daemonState == .running {
+                    ResourceDashboard()
                 }
 
                 // Disk usage
