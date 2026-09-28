@@ -7,7 +7,7 @@ import XCTest
 /// switch the system's language.
 final class LocalizationTests: XCTestCase {
 
-    private static var spanishStrings: [String: String] = {
+    private static let spanishStrings: [String: String] = {
         guard let path = Bundle.module.path(forResource: "es", ofType: "lproj"),
               let bundle = Bundle(path: path) else {
             XCTFail("es.lproj not found in resource bundle")

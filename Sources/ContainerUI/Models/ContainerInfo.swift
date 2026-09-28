@@ -41,7 +41,8 @@ struct ContainerInfo: Identifiable, Hashable {
         ip.components(separatedBy: "/").first ?? ip
     }
 
-    private static let isoFormatter = ISO8601DateFormatter()
+    // Thread-safe for parsing once configured.
+    nonisolated(unsafe) private static let isoFormatter = ISO8601DateFormatter()
 
     var uptimeDisplay: String { uptimeDisplay(at: Date()) }
 

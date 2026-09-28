@@ -42,6 +42,7 @@ struct LogTextView: NSViewRepresentable {
         context.coordinator.apply(text, to: textView, in: scrollView, forceScroll: false)
     }
 
+    @MainActor
     final class Coordinator {
         private var shown = ""
 

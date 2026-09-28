@@ -13,7 +13,7 @@ final class FakeRunner: CommandRunning, @unchecked Sendable {
     var calls: [[String]] { lock.lock(); defer { lock.unlock() }; return _calls }
 
     func run(_ args: [String], stdin: String?, timeout: TimeInterval?) async -> Result<ProcessOutput, CLIError> {
-        lock.lock(); _calls.append(args); lock.unlock()
+        lock.withLock { _calls.append(args) }
         return handler(args)
     }
 
