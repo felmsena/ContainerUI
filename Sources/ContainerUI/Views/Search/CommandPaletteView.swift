@@ -153,6 +153,9 @@ struct CommandPaletteView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(Theme.text)
                         .focused($isFieldFocused)
+                        .onSubmit {
+                            if results.indices.contains(selectedIndex) { run(results[selectedIndex]) }
+                        }
                         .onChange(of: query) { _, _ in selectedIndex = 0 }
                 }
                 .padding(14)
