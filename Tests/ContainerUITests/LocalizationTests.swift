@@ -177,3 +177,20 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(es("This action cannot be undone."), "Esta acción no se puede deshacer.")
     }
 }
+
+extension LocalizationTests {
+    func testNewSectionsAndFeatures() {
+        let bundle = Bundle.module.path(forResource: "es", ofType: "lproj").flatMap(Bundle.init(path:))
+        func es(_ key: String) -> String? {
+            let value = bundle?.localizedString(forKey: key, value: "\u{0}", table: nil)
+            return value == "\u{0}" ? nil : value
+        }
+        XCTAssertEqual(es("Networks"), "Redes")
+        XCTAssertEqual(es("Select a container"), "Seleccioná un contenedor")
+        XCTAssertEqual(es("Activity"), "Actividad")
+        XCTAssertEqual(es("Follow"), "Seguir")
+        XCTAssertEqual(es("Resources"), "Recursos")
+        XCTAssertNotNil(es("Couldn't stop %@"))
+        XCTAssertNotNil(es("Remove %lld containers?"))
+    }
+}

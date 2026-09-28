@@ -554,3 +554,10 @@
 "Clear selection (Esc)" = "Quitar selección (Esc)";
 "Clear selection" = "Quitar selección";
 "Remove %lld containers?" = "¿Eliminar %lld contenedores?";
+
+/* Previously untranslated */
+"Select a container" = "Seleccioná un contenedor";
+"Select an image" = "Seleccioná una imagen";
+"Select a registry entry" = "Seleccioná una entrada del registro";
+"Select a volume" = "Seleccioná un volumen";
+"Overview" = "Resumen";
