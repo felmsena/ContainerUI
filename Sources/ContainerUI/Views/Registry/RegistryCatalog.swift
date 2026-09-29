@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Note on ports: host port 5000 (and 7000) is taken by macOS's AirPlay
+/// Receiver, so the registry maps to 5001. Portainer isn't listed — it
+/// manages Docker/Kubernetes through their APIs, which Apple Container
+/// doesn't expose, so it would start but couldn't do anything.
 let curatedCategories: [RegistryCategory] = [
     RegistryCategory(name: "Databases", icon: "cylinder.split.1x2", entries: [
         RegistryEntry(name: "Memcached",     image: "memcached",    tag: "alpine",    category: "Databases", icon: "bolt.fill",              color: .teal,    defaultPorts: [("11211","11211")],              defaultMemory: "256M", defaultEnv: []),
@@ -31,10 +35,9 @@ let curatedCategories: [RegistryCategory] = [
     RegistryCategory(name: "Dev Tools", icon: "hammer.fill", entries: [
         RegistryEntry(name: "Jenkins",       image: "jenkins/jenkins",        tag: "lts",    category: "Dev Tools", icon: "gearshape.2.fill",   color: .indigo, defaultPorts: [("8080","8080"),("50000","50000")], defaultMemory: "1G",   defaultEnv: []),
         RegistryEntry(name: "MinIO",         image: "minio/minio",            tag: "latest", category: "Dev Tools", icon: "externaldrive.connected.to.line.below.fill", color: .red, defaultPorts: [("9000","9000"),("9001","9001")], defaultMemory: "512M", defaultEnv: ["MINIO_ROOT_USER=admin","MINIO_ROOT_PASSWORD=secret"]),
-        RegistryEntry(name: "Registry",      image: "registry",               tag: "2",      category: "Dev Tools", icon: "shippingbox.fill",   color: .blue,   defaultPorts: [("5000","5000")],  defaultMemory: "128M", defaultEnv: []),
+        RegistryEntry(name: "Registry",      image: "registry",               tag: "2",      category: "Dev Tools", icon: "shippingbox.fill",   color: .blue,   defaultPorts: [("5001","5000")],  defaultMemory: "128M", defaultEnv: []),
         RegistryEntry(name: "Gitea",         image: "gitea/gitea",            tag: "latest", category: "Dev Tools", icon: "arrow.triangle.pull", color: .green, defaultPorts: [("3000","3000"),("22","22")], defaultMemory: "512M", defaultEnv: []),
         RegistryEntry(name: "Adminer",       image: "adminer",                tag: "latest", category: "Dev Tools", icon: "tablecells.fill",    color: .teal,   defaultPorts: [("8080","8080")],  defaultMemory: "128M", defaultEnv: []),
-        RegistryEntry(name: "Portainer",     image: "portainer/portainer-ce", tag: "latest", category: "Dev Tools", icon: "slider.horizontal.3", color: .blue,  defaultPorts: [("9000","9000"),("9443","9443")], defaultMemory: "256M", defaultEnv: []),
     ]),
     RegistryCategory(name: "Apps", icon: "app.fill", entries: [
         RegistryEntry(name: "WordPress",     image: "wordpress",  tag: "latest",   category: "Apps", icon: "doc.richtext.fill",   color: .blue,      defaultPorts: [("8080","80")],   defaultMemory: "512M", defaultEnv: ["WORDPRESS_DB_PASSWORD=secret"]),

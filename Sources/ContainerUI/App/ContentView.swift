@@ -4,6 +4,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
     case containers = "Containers"
     case images     = "Images"
     case volumes    = "Volumes"
+    case networks   = "Networks"
     case registry   = "Registry"
     case build      = "Build"
     case groups     = "Groups"
@@ -16,6 +17,7 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .containers: return "square.stack.3d.up"
         case .images:     return "shippingbox"
         case .volumes:    return "externaldrive"
+        case .networks:   return "network"
         case .registry:   return "storefront"
         case .build:      return "hammer"
         case .groups:     return "rectangle.3.group"
@@ -24,19 +26,34 @@ enum SidebarItem: String, CaseIterable, Hashable {
         case .settings:   return "gearshape"
         }
     }
+
+    /// Sections with a list → detail layout. The rest are single full-width
+    /// pages and use a two-column split, so no empty detail pane eats space.
+    var hasDetail: Bool {
+        switch self {
+        case .containers, .images, .volumes, .networks, .registry, .groups: return true
+        case .build, .stats, .logs, .settings: return false
+        }
+    }
 }
 
 struct ContentView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system
-    @State private var selectedContainer: ContainerInfo?
-    @State private var selectedImage: ImageInfo?
-    @State private var selectedRegistryEntry: RegistryEntry?
-    @State private var selectedVolume: VolumeInfo?
-    @State private var selectedGroup: URL?
 
     var body: some View {
         VStack(spacing: 0) {
+            banners
+            splitView
+        }
+        .animation(.easeOut(duration: 0.2), value: service.serviceError)
+        .animation(.easeOut(duration: 0.2), value: service.availableUpdate)
+        .preferredColorScheme(appAppearance.colorScheme)
+    }
+
+    @ViewBuilder
+    private var banners: some View {
         if service.serviceError != nil || service.availableUpdate != nil {
             VStack(spacing: 8) {
                 if let error = service.serviceError {
@@ -50,7 +67,9 @@ struct ContentView: View {
                         message: String(localized: "ContainerUI \(release.tagName) is available"),
                         style: .info,
                         actionLabel: String(localized: "Download"),
-                        action: { NSWorkspace.shared.open(URL(string: release.htmlUrl)!) }
+                        action: {
+                            if let url = URL(string: release.htmlUrl) { NSWorkspace.shared.open(url) }
+                        }
                     ) {
                         service.availableUpdate = nil
                     }
@@ -60,90 +79,172 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
         }
+    }
 
-        NavigationSplitView {
-            SidebarView(selected: $service.sidebarItem)
-                .navigationSplitViewColumnWidth(min: 224, ideal: 248, max: 280)
-        } content: {
-            switch service.sidebarItem {
-            case .containers: ContainerListView(selected: $selectedContainer)
-            case .images:     ImagesView(selected: $selectedImage)
-            case .volumes:    VolumesView(selected: $selectedVolume)
-            case .registry:   RegistryView(selectedEntry: $selectedRegistryEntry)
-            case .build:      BuildView(sidebarItem: $service.sidebarItem, selectedImage: $selectedImage)
-            case .groups:     GroupsView(selected: $selectedGroup)
-            case .stats:      SystemStatsView()
-            case .logs:       SystemLogsView()
-            case .settings:   SettingsView()
-            }
-        } detail: {
-            switch service.sidebarItem {
-            case .containers:
-                if let container = selectedContainer {
-                    DetailView(container: container).id(container.id)
-                } else {
-                    EmptyStateView(icon: "square.stack.3d.up", title: "Select a container")
+    private var splitView: some View {
+        Group {
+            if app.sidebarItem.hasDetail {
+                NavigationSplitView {
+                    sidebar
+                } content: {
+                    contentColumn
+                        .navigationSplitViewColumnWidth(min: 320, ideal: 420)
+                } detail: {
+                    detailColumn
+                        .navigationSplitViewColumnWidth(min: 360, ideal: 480)
                 }
-            case .images:
-                if let image = selectedImage {
-                    ImageDetailView(image: image).id(image.id)
-                } else {
-                    EmptyStateView(icon: "shippingbox", title: "Select an image")
+            } else {
+                NavigationSplitView {
+                    sidebar
+                } detail: {
+                    contentColumn
                 }
-            case .registry:
-                if let entry = selectedRegistryEntry {
-                    RegistryDetailView(entry: entry)
-                        .id(entry.id)
-                } else {
-                    EmptyStateView(icon: "storefront", title: "Select a registry entry")
-                }
-            case .volumes:
-                if let volume = selectedVolume {
-                    VolumeDetailView(volume: volume)
-                        .id(volume.id)
-                } else {
-                    EmptyStateView(icon: "externaldrive", title: "Select a volume")
-                }
-            case .groups:
-                if let group = selectedGroup {
-                    GroupDetailView(fileURL: group).id(group)
-                } else {
-                    EmptyStateView(icon: "rectangle.3.group", title: "Select a group")
-                }
-            default:
-                EmptyStateView(icon: service.sidebarItem.icon, title: LocalizedStringKey(service.sidebarItem.rawValue))
             }
         }
-        .onChange(of: service.containers) { _, _ in
-            if let selected = selectedContainer,
-               let updated = service.containers.first(where: { $0.id == selected.id }) {
-                selectedContainer = updated
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                ActivityToolbarButton()
             }
         }
-        .onChange(of: service.sidebarItem) { _, _ in
-            selectedRegistryEntry = nil
-        }
-        .overlay {
-            if service.showCommandPalette {
-                CommandPaletteView(
-                    isPresented: $service.showCommandPalette,
-                    sidebarItem: $service.sidebarItem,
-                    selectedContainer: $selectedContainer,
-                    selectedImage: $selectedImage,
-                    selectedVolume: $selectedVolume
-                )
-            }
-        }
-        .sheet(isPresented: $service.showRunSheet) {
-            RunContainerSheet(imageRef: "", defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
-        }
+        .modifier(SelectionSync())
+        .modifier(GlobalSheets())
         .tint(Theme.accent)
         .background(Theme.bg)
         .toolbarBackground(Theme.bg, for: .windowToolbar)
+    }
+
+    private var sidebar: some View {
+        @Bindable var app = app
+        return SidebarView(selected: $app.sidebarItem)
+            .navigationSplitViewColumnWidth(min: 224, ideal: 248, max: 280)
+    }
+
+    @ViewBuilder
+    private var contentColumn: some View {
+        @Bindable var app = app
+        switch app.sidebarItem {
+        case .containers: ContainerListView(selected: $app.selectedContainer)
+        case .images:     ImagesView(selected: $app.selectedImage)
+        case .volumes:    VolumesView(selected: $app.selectedVolume)
+        case .networks:   NetworksView(selected: $app.selectedNetwork)
+        case .registry:   RegistryView(selectedEntry: $app.selectedRegistryEntry)
+        case .build:      BuildView()
+        case .groups:     GroupsView(selected: $app.selectedGroup)
+        case .stats:      SystemStatsView()
+        case .logs:       SystemLogsView()
+        case .settings:   SettingsView()
         }
-        .animation(.easeOut(duration: 0.2), value: service.serviceError)
-        .animation(.easeOut(duration: 0.2), value: service.availableUpdate)
-        .preferredColorScheme(appAppearance.colorScheme)
+    }
+
+    @ViewBuilder
+    private var detailColumn: some View {
+        switch app.sidebarItem {
+        case .containers:
+            if let container = app.selectedContainer {
+                DetailView(container: container).id(container.id)
+            } else {
+                EmptyStateView(icon: "square.stack.3d.up", title: "Select a container")
+            }
+        case .images:
+            if let image = app.selectedImage {
+                ImageDetailView(image: image).id(image.id)
+            } else {
+                EmptyStateView(icon: "shippingbox", title: "Select an image")
+            }
+        case .registry:
+            if let entry = app.selectedRegistryEntry {
+                RegistryDetailView(entry: entry).id(entry.id)
+            } else {
+                EmptyStateView(icon: "storefront", title: "Select a registry entry")
+            }
+        case .volumes:
+            if let volume = app.selectedVolume {
+                VolumeDetailView(volume: volume).id(volume.id)
+            } else {
+                EmptyStateView(icon: "externaldrive", title: "Select a volume")
+            }
+        case .networks:
+            if let network = app.selectedNetwork {
+                NetworkDetailView(network: network).id(network.id)
+            } else {
+                EmptyStateView(icon: "network", title: "Select a network")
+            }
+        case .groups:
+            if let group = app.selectedGroup {
+                GroupDetailView(fileURL: group).id(group)
+            } else {
+                EmptyStateView(icon: "rectangle.3.group", title: "Select a group")
+            }
+        default:
+            EmptyStateView(icon: app.sidebarItem.icon, title: LocalizedStringKey(app.sidebarItem.rawValue))
+        }
+    }
+}
+
+/// Keeps selections pointing at the freshest copy of each item, and drops
+/// them when the item disappears (removed here or via the CLI), so the
+/// detail pane never shows something that no longer exists.
+private struct SelectionSync: ViewModifier {
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: service.containers) { _, containers in
+                if let selected = app.selectedContainer {
+                    app.selectedContainer = containers.first { $0.id == selected.id }
+                }
+            }
+            .onChange(of: service.images) { _, images in
+                if let selected = app.selectedImage {
+                    app.selectedImage = images.first { $0.id == selected.id }
+                }
+            }
+            .onChange(of: service.volumes) { _, volumes in
+                if let selected = app.selectedVolume {
+                    app.selectedVolume = volumes.first { $0.id == selected.id }
+                }
+            }
+            .onChange(of: service.networks) { _, networks in
+                if let selected = app.selectedNetwork {
+                    app.selectedNetwork = networks.first { $0.id == selected.id }
+                }
+            }
+            .onChange(of: app.sidebarItem) { _, _ in
+                app.selectedRegistryEntry = nil
+            }
+    }
+}
+
+/// Sheets and overlays any view can trigger through `AppState`.
+private struct GlobalSheets: ViewModifier {
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
+
+    func body(content: Content) -> some View {
+        @Bindable var app = app
+        content
+            .overlay { ToastOverlay() }
+            .overlay {
+                if app.showCommandPalette {
+                    CommandPaletteView()
+                }
+            }
+            .sheet(item: $app.runRequest) { request in
+                RunContainerSheet(spec: request.spec)
+                    .environment(service)
+            }
+            .sheet(isPresented: $app.showPullSheet) {
+                PullImageSheet(isPresented: $app.showPullSheet)
+                    .environment(service)
+            }
+            .sheet(isPresented: $app.showCreateVolumeSheet) {
+                CreateVolumeSheet(isPresented: $app.showCreateVolumeSheet)
+                    .environment(service)
+            }
+            .sheet(isPresented: $app.showCreateNetworkSheet) {
+                CreateNetworkSheet(isPresented: $app.showCreateNetworkSheet)
+                    .environment(service)
+            }
     }
 }

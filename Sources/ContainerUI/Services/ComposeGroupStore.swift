@@ -7,7 +7,7 @@ import Foundation
 /// deleted are dropped silently on load rather than shown as broken rows.
 enum ComposeGroupStore {
     private static let key = "composeGroupPaths"
-    private static let defaults = UserDefaults.standard
+    private static var defaults: UserDefaults { .standard }
 
     static func load() -> [URL] {
         let paths = defaults.array(forKey: key) as? [String] ?? []

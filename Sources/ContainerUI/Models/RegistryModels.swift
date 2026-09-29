@@ -17,6 +17,12 @@ struct RegistryEntry: Identifiable {
     var isOfficial: Bool = false
 
     var fullRef: String { "\(image):\(tag)" }
+
+    /// Run sheet defaults for this catalog entry.
+    var runSpec: RunSpec {
+        RunSpec(image: fullRef, memory: defaultMemory,
+                ports: defaultPorts.map { "\($0.0):\($0.1)" }, env: defaultEnv)
+    }
     var namespace: String { image.contains("/") ? String(image.split(separator: "/").first!) : "library" }
     var repoName: String { image.contains("/") ? String(image.split(separator: "/").dropFirst().joined(separator: "/")) : image }
 }

@@ -3,53 +3,32 @@ import Foundation
 extension ContainerService {
 
     func fetchImages() async {
-        images = (try? await fetchJSONOrText(
-            args: [bin, "image", "ls"],
+        update(\.images, (try? await fetchJSONOrText(
+            args: [bin] + CLI.imageList(),
             jsonParse: Self.parseImageListJSON,
             textParse: Self.parseImageList
-        )) ?? []
-    }
-
-    func pullImage(_ ref: String) async throws {
-        do {
-            try await shell([bin, "image", "pull", ref])
-        } catch {
-            notifyPullFinished(ref: ref, success: false)
-            throw error
-        }
-        notifyPullFinished(ref: ref, success: true)
-        await fetchImages()
+        )) ?? [])
     }
 
     func deleteImage(_ ref: String) async {
-        _ = try? await shell([bin, "image", "rm", ref])
+        do { try await cli(CLI.imageDelete(ref)) } catch { report(error, as: String(localized: "Couldn't delete \(ref)")) }
         await fetchImages()
     }
 
-    func pruneImages() async {
-        _ = try? await shell([bin, "image", "prune"])
+    /// Removes exactly the given images (the ones the UI counted as unused),
+    /// rather than `image prune`, whose "dangling only" semantics don't match
+    /// what the toolbar shows and whose `--all` would also delete the
+    /// system images Apple Container needs.
+    func removeImages(_ refs: [String]) async {
+        for ref in refs {
+            do { try await cli(CLI.imageDelete(ref)) } catch { report(error, as: String(localized: "Couldn't delete \(ref)")) }
+        }
         await fetchImages()
     }
 
     nonisolated static func parseImageList(_ output: String) -> [ImageInfo] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let nameOff   = columnOffset("NAME",   in: header),
-            let tagOff    = columnOffset("TAG",     in: header),
-            let digestOff = columnOffset("DIGEST",  in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > nameOff else { return nil }
-            let name   = field(chars, from: nameOff,   to: tagOff)
-            let tag    = field(chars, from: tagOff,    to: digestOff)
-            let digest = field(chars, from: digestOff, to: nil)
-            guard !name.isEmpty else { return nil }
-            return ImageInfo(name: name, tag: tag, digest: digest)
+        tableRows(output, columns: ["NAME", "TAG", "DIGEST"]).map { f in
+            ImageInfo(name: f[0], tag: f[1], digest: f[2])
         }
     }
 

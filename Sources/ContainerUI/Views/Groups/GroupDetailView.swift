@@ -1,15 +1,20 @@
 import SwiftUI
 
 struct GroupDetailView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     let fileURL: URL
 
     @State private var text: String = ""
     @State private var parseResult: Result<ComposeGroup, ComposeParseError>?
-    @State private var isBusy = false
     @State private var didLoad = false
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveError: String?
 
     private var groupName: String { fileURL.deletingPathExtension().lastPathComponent }
+
+    private var isBusy: Bool {
+        service.jobs.contains { $0.kind == .compose && $0.subject == groupName && $0.isRunning }
+    }
 
     private var validationError: String? {
         guard case .failure(let error) = parseResult else { return nil }
@@ -25,7 +30,7 @@ struct GroupDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    formSection("YAML") {
+                    FormSection("YAML") {
                         TextEditor(text: $text)
                             .font(.system(size: 12, design: .monospaced))
                             .frame(minHeight: 260)
@@ -34,8 +39,14 @@ struct GroupDetailView: View {
                             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.border))
                             .onChange(of: text) { _, newValue in
                                 parseResult = ComposeParser.parse(newValue)
-                                try? newValue.write(to: fileURL, atomically: true, encoding: .utf8)
+                                scheduleSave(newValue)
                             }
+                    }
+
+                    if let saveError {
+                        Label(saveError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.danger)
                     }
 
                     if let validationError {
@@ -66,7 +77,7 @@ struct GroupDetailView: View {
                 } label: {
                     Label("Down", systemImage: "stop.fill")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                 .disabled(isBusy || parsedGroup == nil)
 
                 Button {
@@ -81,31 +92,46 @@ struct GroupDetailView: View {
                         Text("Up")
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
                 .disabled(isBusy || parsedGroup == nil)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
-        .navigationTitle(LocalizedStringKey(groupName))
+        .navigationTitle(groupName)  // a file name: shown verbatim, never translated
         .task {
             guard !didLoad else { return }
             didLoad = true
             text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
             parseResult = ComposeParser.parse(text)
         }
-    }
-
-    @ViewBuilder
-    private func formSection<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.text2)
-            content()
+        .onDisappear {
+            // Flush a pending save immediately rather than dropping it.
+            if saveTask != nil {
+                saveTask?.cancel()
+                try? text.write(to: fileURL, atomically: true, encoding: .utf8)
+            }
         }
     }
+
+    /// Writes the YAML half a second after typing stops, instead of
+    /// rewriting the file on every keystroke.
+    private func scheduleSave(_ newValue: String) {
+        guard didLoad else { return }
+        saveTask?.cancel()
+        saveTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            do {
+                try newValue.write(to: fileURL, atomically: true, encoding: .utf8)
+                saveError = nil
+            } catch {
+                saveError = String(localized: "Couldn't save: \(error.localizedDescription)")
+            }
+            saveTask = nil
+        }
+    }
+
 
     private func serviceRow(_ svc: ComposeService) -> some View {
         let state = status(for: svc)
@@ -160,15 +186,21 @@ struct GroupDetailView: View {
 
     private func bringUp() async {
         guard let group = parsedGroup else { return }
-        isBusy = true
-        _ = await service.composeUp(group: groupName, services: group)
-        isBusy = false
+        let name = groupName
+        service.trackCompose(String(localized: "Up \(name)"), group: name) { [service] in
+            switch await service.composeUp(group: name, services: group) {
+            case .success: return nil
+            case .failure(let error): return error.description
+            }
+        }
     }
 
     private func bringDown() async {
         guard let group = parsedGroup else { return }
-        isBusy = true
-        await service.composeDown(group: groupName, services: group)
-        isBusy = false
+        let name = groupName
+        service.trackCompose(String(localized: "Down \(name)"), group: name) { [service] in
+            await service.composeDown(group: name, services: group)
+            return nil
+        }
     }
 }

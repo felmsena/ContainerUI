@@ -11,6 +11,21 @@ struct ContainerInfo: Identifiable, Hashable {
     let cpus: Int
     let memory: String
     let started: String
+    var labels: [String: String] = [:]
+    /// Names of the networks the container is attached to.
+    var networks: [String] = []
+    /// Host-side sources of the container's mounts (for named volumes, the
+    /// volume's image file — see `VolumeInfo.source`).
+    var mountSources: [String] = []
+    /// Named volumes mounted into the container.
+    var volumeNames: [String] = []
+
+    /// The BuildKit container Apple Container runs behind `container build`.
+    /// It's infrastructure, not a user container, so it's listed separately.
+    var isBuilder: Bool {
+        labels["com.apple.container.resource.role"] == "builder"
+            || (id == "buildkit" && image.contains("container-builder-shim"))
+    }
 
     var shortImage: String {
         image
@@ -26,11 +41,17 @@ struct ContainerInfo: Identifiable, Hashable {
         ip.components(separatedBy: "/").first ?? ip
     }
 
-    var uptimeDisplay: String {
+    // Thread-safe for parsing once configured.
+    nonisolated(unsafe) private static let isoFormatter = ISO8601DateFormatter()
+
+    var uptimeDisplay: String { uptimeDisplay(at: Date()) }
+
+    /// Uptime relative to `now` — views re-evaluate it from a `TimelineView`,
+    /// since the model itself doesn't change while a container runs.
+    func uptimeDisplay(at now: Date) -> String {
         guard !started.isEmpty else { return "—" }
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: started) else { return started }
-        let elapsed = Date().timeIntervalSince(date)
+        guard let date = Self.isoFormatter.date(from: started) else { return started }
+        let elapsed = now.timeIntervalSince(date)
         if elapsed < 0 { return "—" }
         if elapsed < 60 { return "\(Int(elapsed))s" }
         if elapsed < 3600 { return "\(Int(elapsed / 60))m \(Int(elapsed.truncatingRemainder(dividingBy: 60)))s" }
@@ -54,9 +75,9 @@ enum ContainerState: String, Hashable {
 
     var color: Color {
         switch self {
-        case .running: return .green
+        case .running: return Theme.accent
         case .stopped: return Color(nsColor: .tertiaryLabelColor)
-        case .paused: return .orange
+        case .paused: return Theme.warn
         case .unknown: return Color(nsColor: .tertiaryLabelColor)
         }
     }

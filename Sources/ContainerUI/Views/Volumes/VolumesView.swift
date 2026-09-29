@@ -1,22 +1,35 @@
 import SwiftUI
 
 struct VolumesView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Binding var selected: VolumeInfo?
-    @State private var showCreateSheet = false
+    @Environment(AppState.self) private var app
+    @State private var showPruneAlert = false
+    @State private var searchText = ""
+
+    private var filtered: [VolumeInfo] {
+        guard !searchText.isEmpty else { return service.volumes }
+        return service.volumes.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            SearchField(text: $searchText, prompt: "Search volumes…")
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Theme.bg)
+
             if service.volumes.isEmpty {
                 EmptyStateView(icon: "externaldrive", title: "No volumes") {
-                    Button("Create volume") { showCreateSheet = true }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
+                    Button("Create volume") { app.showCreateVolumeSheet = true }
+                        .buttonStyle(BrandButtonStyle(kind: .primary))
                 }
+            } else if filtered.isEmpty {
+                EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 6) {
-                        ForEach(service.volumes) { volume in
+                        ForEach(filtered) { volume in
                             VolumeRowView(volume: volume, isSelected: selected?.id == volume.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture { selected = volume }
@@ -25,6 +38,7 @@ struct VolumesView: View {
                     .padding(12)
                 }
                 .background(Theme.bg)
+                .listKeyboardNavigation(items: filtered, selection: $selected)
             }
         }
         .navigationTitle("Volumes")
@@ -39,7 +53,7 @@ struct VolumesView: View {
                 .accessibilityLabel("Refresh volumes")
 
                 Button {
-                    Task { await service.pruneVolumes() }
+                    showPruneAlert = true
                 } label: {
                     Image(systemName: "trash.slash")
                 }
@@ -47,7 +61,7 @@ struct VolumesView: View {
                 .accessibilityLabel("Prune unused volumes")
 
                 Button {
-                    showCreateSheet = true
+                    app.showCreateVolumeSheet = true
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -56,8 +70,13 @@ struct VolumesView: View {
             }
         }
         .task { await service.fetchVolumes() }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateVolumeSheet(isPresented: $showCreateSheet)
+        .alert("Remove all unused volumes?", isPresented: $showPruneAlert) {
+            Button("Remove", role: .destructive) {
+                Task { await service.pruneVolumes() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone.")
         }
     }
 }
@@ -65,18 +84,20 @@ struct VolumesView: View {
 struct VolumeRowView: View {
     let volume: VolumeInfo
     let isSelected: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var showDeleteAlert = false
+
+    private var inUse: Bool { !service.containers(using: volume).isEmpty }
 
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: "#D97706").opacity(0.14))
+                    .fill(Theme.Hue.volumes.opacity(0.14))
                     .frame(width: 32, height: 32)
                 Image(systemName: "externaldrive.fill")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(hex: "#D97706"))
+                    .foregroundStyle(Theme.Hue.volumes)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -108,7 +129,9 @@ struct VolumeRowView: View {
                     .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
-            .help("Delete volume")
+            .disabled(inUse)
+            .opacity(inUse ? 0.35 : 1)
+            .help(inUse ? "In use by a container" : "Delete volume")
             .accessibilityLabel("Delete \(volume.name)")
         }
         .padding(.horizontal, 12)
@@ -134,7 +157,7 @@ struct VolumeRowView: View {
 
 struct CreateVolumeSheet: View {
     @Binding var isPresented: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var name = ""
     @State private var isCreating = false
     @State private var error: String?
@@ -161,8 +184,7 @@ struct CreateVolumeSheet: View {
                 Spacer()
                 Button("Cancel") { isPresented = false }.keyboardShortcut(.escape)
                 Button("Create") { Task { await create() } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accent)
+                    .buttonStyle(BrandButtonStyle(kind: .primary))
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
             }
         }

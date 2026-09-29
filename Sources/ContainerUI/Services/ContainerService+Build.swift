@@ -1,65 +1,5 @@
 import Foundation
 
-/// A single running (or finished) `container build` invocation. Streams
-/// combined stdout/stderr as they're produced (so a log view can update
-/// live) and can be cancelled mid-build by terminating the process.
-final class BuildTask {
-    private let process: Process
-    let output: AsyncThrowingStream<String, Error>
-
-    init(bin: String, tag: String, contextDir: String, buildArgs: [String]) {
-        var args = [bin, "build", "-t", tag, "--progress", "plain"]
-        for arg in buildArgs { args += ["--build-arg", arg] }
-        args.append(contextDir)
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: args[0])
-        process.arguments = Array(args.dropFirst())
-        self.process = process
-
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = errPipe
-
-        output = AsyncThrowingStream { continuation in
-            func pump(_ pipe: Pipe) {
-                pipe.fileHandleForReading.readabilityHandler = { handle in
-                    let data = handle.availableData
-                    guard !data.isEmpty else { return }
-                    if let text = String(data: data, encoding: .utf8) {
-                        continuation.yield(text)
-                    }
-                }
-            }
-            pump(outPipe)
-            pump(errPipe)
-
-            process.terminationHandler = { proc in
-                outPipe.fileHandleForReading.readabilityHandler = nil
-                errPipe.fileHandleForReading.readabilityHandler = nil
-                if proc.terminationStatus == 0 {
-                    continuation.finish()
-                } else {
-                    continuation.finish(throwing: ContainerService.ContainerError.failed("Build exited with status \(proc.terminationStatus)"))
-                }
-            }
-
-            do {
-                try process.run()
-            } catch {
-                continuation.finish(throwing: error)
-            }
-        }
-    }
-
-    /// Terminates the build process if it's still running. The output
-    /// stream then finishes via the termination handler above.
-    func cancel() {
-        if process.isRunning { process.terminate() }
-    }
-}
-
 extension ContainerService {
     /// Detects `Dockerfile` or `Containerfile` directly under `dir`, for UI
     /// validation before starting a build. `container build` itself already
@@ -72,8 +12,53 @@ extension ContainerService {
         }
         return nil
     }
+}
 
-    func startBuild(tag: String, contextDir: String, buildArgs: [String] = []) -> BuildTask {
-        BuildTask(bin: bin, tag: tag, contextDir: contextDir, buildArgs: buildArgs)
+extension ContainerService {
+    /// (Re)starts BuildKit with the given resources. A builder that already
+    /// exists keeps the resources it was created with, so changing them
+    /// means deleting it first.
+    func startBuilder(cpus: Int, memory: String) async {
+        builderBusy = true
+        defer { builderBusy = false }
+        do {
+            if let current = builderContainer,
+               current.cpus != cpus || current.memory != formatBytes(Self.bytes(fromMemorySpec: memory) ?? 0) {
+                _ = try? await cli(CLI.builderStop())
+                try await cli(CLI.builderDelete())
+            }
+            try await cli(CLI.builderStart(cpus: cpus, memory: memory), timeout: nil)
+        } catch {
+            report(error, as: String(localized: "Couldn't start the builder"))
+        }
+        await fetchContainers()
+    }
+
+    func stopBuilder() async {
+        builderBusy = true
+        defer { builderBusy = false }
+        do { try await cli(CLI.builderStop()) } catch { report(error, as: String(localized: "Couldn't stop the builder")) }
+        await fetchContainers()
+    }
+
+    func deleteBuilder() async {
+        builderBusy = true
+        defer { builderBusy = false }
+        _ = try? await cli(CLI.builderStop())
+        do { try await cli(CLI.builderDelete()) } catch { report(error, as: String(localized: "Couldn't delete the builder")) }
+        await fetchContainers()
+    }
+
+    /// "512M" → 536870912, "2G" → 2147483648.
+    nonisolated static func bytes(fromMemorySpec spec: String) -> Int? {
+        let s = spec.uppercased().trimmingCharacters(in: .whitespaces)
+        guard let unit = s.last, let value = Int(s.dropLast()) else { return Int(s) }
+        switch unit {
+        case "K": return value * 1024
+        case "M": return value * 1024 * 1024
+        case "G": return value * 1024 * 1024 * 1024
+        case "T": return value * 1024 * 1024 * 1024 * 1024
+        default: return Int(s)
+        }
     }
 }

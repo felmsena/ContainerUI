@@ -24,21 +24,35 @@ private struct HubRepoDetail: Codable {
     }
 }
 
+/// Docker Hub enrichment for the curated catalog, kept for the app's
+/// lifetime (with a TTL) so switching to Registry doesn't refetch ~40
+/// repositories every time.
+@MainActor
+private enum HubCache {
+    static let ttl: TimeInterval = 60 * 60
+    static var details: [String: HubRepoDetail] = [:]
+    static var fetchedAt: Date?
+
+    static var isFresh: Bool {
+        guard let fetchedAt else { return false }
+        return Date().timeIntervalSince(fetchedAt) < ttl
+    }
+}
+
 // MARK: - Main View
 
 struct RegistryView: View {
     @Binding var selectedEntry: RegistryEntry?
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var mode: Mode = .browse
-    @State private var categories: [RegistryCategory] = curatedCategories
+    @State private var categories: [RegistryCategory] = RegistryView.enrichedCategories()
     @State private var isLoadingHub = false
     @State private var hubLoadError: String?
     @State private var searchText = ""
     @State private var searchResults: [HubRepo] = []
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
-    @State private var runEntry: RegistryEntry?
-    @State private var runRef: String?
 
     enum Mode: String, CaseIterable { case browse = "Featured"; case search = "Search" }
 
@@ -63,20 +77,6 @@ struct RegistryView: View {
         }
         .navigationTitle("Registry")
         .task { await loadHubData() }
-        .sheet(item: $runEntry) { entry in
-            RunContainerSheet(imageRef: entry.fullRef,
-                              defaultPorts: entry.defaultPorts,
-                              defaultMemory: entry.defaultMemory,
-                              defaultEnv: entry.defaultEnv)
-                .environmentObject(service)
-        }
-        .sheet(item: Binding(
-            get: { runRef.map { RefWrapper(value: $0) } },
-            set: { runRef = $0?.value }
-        )) { wrapper in
-            RunContainerSheet(imageRef: wrapper.value, defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
-        }
     }
 
     // MARK: Browse
@@ -105,9 +105,9 @@ struct RegistryView: View {
                                                  isSelected: selectedEntry?.id == entry.id) {
                                         selectedEntry = entry
                                     } onPull: {
-                                        Task { try? await service.pullImage(entry.fullRef) }
+                                        service.startPull(entry.fullRef)
                                     } onRun: {
-                                        runEntry = entry
+                                        app.runContainer(entry.runSpec)
                                     }
                                 }
                             }
@@ -178,9 +178,9 @@ struct RegistryView: View {
                 ZStack(alignment: .top) {
                     List(searchResults) { repo in
                         HubRepoRow(repo: repo) {
-                            Task { try? await service.pullImage(repo.repoName) }
+                            service.startPull(repo.repoName)
                         } onRun: {
-                            runRef = repo.repoName
+                            app.runContainer(RunSpec(image: repo.repoName))
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { selectedEntry = hubRepoToEntry(repo) }
@@ -209,8 +209,28 @@ struct RegistryView: View {
 
     // MARK: Docker Hub fetch
 
+    /// The curated catalog with whatever Docker Hub data is cached, sorted
+    /// by popularity within each category.
+    private static func enrichedCategories() -> [RegistryCategory] {
+        var updated = curatedCategories
+        for ci in updated.indices {
+            for ei in updated[ci].entries.indices {
+                if let d = HubCache.details[updated[ci].entries[ei].image] {
+                    updated[ci].entries[ei].description = d.description
+                    updated[ci].entries[ei].pullCount   = d.pullCount
+                    updated[ci].entries[ei].starCount   = d.starCount
+                    updated[ci].entries[ei].isOfficial  = d.isOfficial ?? updated[ci].entries[ei].isOfficial
+                }
+            }
+            if !HubCache.details.isEmpty {
+                updated[ci].entries.sort { $0.pullCount > $1.pullCount }
+            }
+        }
+        return updated
+    }
+
     private func loadHubData() async {
-        guard !isLoadingHub else { return }
+        guard !isLoadingHub, !HubCache.isFresh else { return }
         isLoadingHub = true
         hubLoadError = nil
 
@@ -224,25 +244,17 @@ struct RegistryView: View {
                 }
             }
 
-            var details: [String: HubRepoDetail] = [:]
             for await (image, detail) in group {
-                if let d = detail { details[image] = d }
+                if let d = detail { HubCache.details[image] = d }
             }
-
-            var updated = curatedCategories
-            for ci in updated.indices {
-                for ei in updated[ci].entries.indices {
-                    let image = updated[ci].entries[ei].image
-                    if let d = details[image] {
-                        updated[ci].entries[ei].description = d.description
-                        updated[ci].entries[ei].pullCount   = d.pullCount
-                        updated[ci].entries[ei].starCount   = d.starCount
-                        updated[ci].entries[ei].isOfficial  = d.isOfficial ?? updated[ci].entries[ei].isOfficial
-                    }
-                }
-                updated[ci].entries.sort { $0.pullCount > $1.pullCount }
-            }
-            categories = updated
+        }
+        if !HubCache.details.isEmpty { HubCache.fetchedAt = Date() }
+        categories = Self.enrichedCategories()
+        // The selection was copied before enrichment; swap in the enriched
+        // entry so the detail pane shows its description and stats.
+        if let selected = selectedEntry,
+           let fresh = categories.lazy.flatMap(\.entries).first(where: { $0.id == selected.id }) {
+            selectedEntry = fresh
         }
 
         isLoadingHub = false
@@ -300,9 +312,16 @@ struct RegistryView: View {
     }
 
     private func fetchSearchResults(query: String) async throws -> [HubRepo] {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let urlStr = "https://hub.docker.com/v2/search/repositories/?query=\(encoded)&page_size=25&page=1"
-        guard let url = URL(string: urlStr) else { return [] }
+        // URLQueryItem escapes '&', '+', '#', … which .urlQueryAllowed leaves
+        // in place (so "c++" or "a&b" used to corrupt the query string).
+        var components = URLComponents(string: "https://hub.docker.com/v2/search/repositories/")!
+        components.queryItems = [
+            URLQueryItem(name: "query", value: query),
+            URLQueryItem(name: "page_size", value: "25"),
+            URLQueryItem(name: "page", value: "1"),
+        ]
+        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        guard let url = components.url else { return [] }
         let (data, _) = try await URLSession.shared.data(from: url)
         return (try? JSONDecoder().decode(HubResponse.self, from: data))?.results ?? []
     }
@@ -317,11 +336,13 @@ struct RegistryCard: View {
     let onSelect: () -> Void
     let onPull: () -> Void
     let onRun: () -> Void
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var isAlreadyPulled: Bool {
-        service.images.contains { $0.name == entry.image }
+        service.images.contains { imageMatches(containerImage: entry.fullRef, image: $0) }
     }
+
+    private var isPulling: Bool { service.isPulling(entry.fullRef) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -391,13 +412,17 @@ struct RegistryCard: View {
                     onPull()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: isAlreadyPulled ? "checkmark" : "arrow.down.circle")
-                            .font(.system(size: 10))
-                        Text(isAlreadyPulled ? "Pulled" : "Pull")
+                        if isPulling {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Image(systemName: isAlreadyPulled ? "checkmark" : "arrow.down.circle")
+                                .font(.system(size: 10))
+                        }
+                        Text(isPulling ? "Pulling…" : isAlreadyPulled ? "Pulled" : "Pull")
                     }
                 }
                 .buttonStyle(BrandButtonStyle(kind: .secondary, fill: true))
-                .disabled(isAlreadyPulled)
+                .disabled(isAlreadyPulled || isPulling)
 
                 Button {
                     onRun()
@@ -471,11 +496,4 @@ struct HubRepoRow: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-// MARK: - Helpers
-
-private struct RefWrapper: Identifiable {
-    let id = UUID()
-    let value: String
 }
