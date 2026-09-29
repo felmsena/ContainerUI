@@ -2,14 +2,15 @@ import SwiftUI
 
 struct InfoTabView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @AppStorage("defaultBrowserPort") private var defaultPort = "9000"
     @State private var customPort = ""
     @State private var copiedKey: String?
     @State private var detail: ContainerDetail?
 
     /// `key` is a stable, non-localized identifier used for copy-button logic;
     /// `label` is the localized display text.
-    private var rows: [(key: String, label: String, value: String)] {
+    private func rows(at now: Date) -> [(key: String, label: String, value: String)] {
         [
             ("ID",     String(localized: "ID"),     container.id),
             ("Image",  String(localized: "Image"),  container.image),
@@ -18,35 +19,32 @@ struct InfoTabView: View {
             ("IP",     String(localized: "IP"),     container.ip.isEmpty ? "—" : container.ip),
             ("CPUs",   String(localized: "CPUs"),   "\(container.cpus)"),
             ("Memory", String(localized: "Memory"), container.memory),
-            ("Uptime", String(localized: "Uptime"), container.state.isRunning ? container.uptimeDisplay : "—"),
+            ("Uptime", String(localized: "Uptime"), container.state.isRunning ? container.uptimeDisplay(at: now) : "—"),
         ]
     }
 
-    private var knownPorts: [(port: Int, label: String)] {
-        let lower = container.image.lowercased()
-        if lower.contains("nginx") || lower.contains("caddy") || lower.contains("apache") {
-            return [(80, "HTTP"), (443, "HTTPS")]
+    private struct BrowserTarget: Identifiable {
+        var id: Int { containerPort }
+        let containerPort: Int
+        let label: String
+        let url: URL
+    }
+
+    /// Ports worth a one-click "open": every published port first (reached
+    /// through its host mapping), then the image's usual ports, reached
+    /// directly on the container's IP.
+    private var browserTargets: [BrowserTarget] {
+        let published = detail?.ports ?? []
+        var targets: [BrowserTarget] = published.compactMap { p in
+            ContainerService.browserURL(containerPort: p.containerPort, ip: container.ipWithoutMask, published: published)
+                .map { BrowserTarget(containerPort: p.containerPort, label: "→ :\(p.hostPort)", url: $0) }
         }
-        if lower.contains("postgres")                { return [(5432, "PostgreSQL")] }
-        if lower.contains("mysql") || lower.contains("mariadb") { return [(3306, "MySQL")] }
-        if lower.contains("mongo")                   { return [(27017, "MongoDB")] }
-        if lower.contains("redis")                   { return [(6379, "Redis")] }
-        if lower.contains("elastic")                 { return [(9200, "HTTP"), (9300, "Transport")] }
-        if lower.contains("kibana")                  { return [(5601, "Kibana")] }
-        if lower.contains("grafana")                 { return [(3000, "Grafana")] }
-        if lower.contains("sonar")                   { return [(9000, "SonarQube")] }
-        if lower.contains("jenkins")                 { return [(8080, "HTTP"), (50000, "Agent")] }
-        if lower.contains("gitlab")                  { return [(80, "HTTP"), (443, "HTTPS"), (22, "SSH")] }
-        if lower.contains("minio")                   { return [(9000, "API"), (9001, "Console")] }
-        if lower.contains("rabbit")                  { return [(5672, "AMQP"), (15672, "Management")] }
-        if lower.contains("kafka")                   { return [(9092, "Broker")] }
-        if lower.contains("node") || lower.contains("express") || lower.contains("next") {
-            return [(3000, "HTTP")]
+        for known in ImageKnowledge.hint(for: container.image)?.ports ?? [] where !targets.contains(where: { $0.containerPort == known.port }) {
+            if let url = ContainerService.browserURL(containerPort: known.port, ip: container.ipWithoutMask, published: published) {
+                targets.append(BrowserTarget(containerPort: known.port, label: known.label, url: url))
+            }
         }
-        if lower.contains("wordpress") || lower.contains("ghost") { return [(80, "HTTP")] }
-        if lower.contains("prometheus")              { return [(9090, "HTTP")] }
-        if lower.contains("traefik")                 { return [(80, "HTTP"), (8080, "Dashboard")] }
-        return []
+        return targets
     }
 
     var body: some View {
@@ -54,8 +52,9 @@ struct InfoTabView: View {
             VStack(alignment: .leading, spacing: 12) {
 
                 // Info rows
+                TimelineView(.periodic(from: .now, by: 1)) { context in
                 SectionCard(title: "Overview") {
-                    ForEach(Array(rows.enumerated()), id: \.element.key) { index, row in
+                    ForEach(Array(rows(at: context.date).enumerated()), id: \.element.key) { index, row in
                         if index > 0 { Divider() }
                         HStack(alignment: .center, spacing: 8) {
                             Text(row.label)
@@ -86,6 +85,7 @@ struct InfoTabView: View {
                             }
                         }
                     }
+                }
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
@@ -135,33 +135,39 @@ struct InfoTabView: View {
 
                 // Quick actions
                 VStack(alignment: .leading, spacing: 10) {
+                    if service.pendingContainers.contains(container.id) {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Working…").font(.system(size: 12)).foregroundStyle(Theme.text2)
+                        }
+                    }
                     if container.state.isRunning {
 
-                        // Known ports
-                        if !knownPorts.isEmpty {
+                        // Ports to open in the browser
+                        if !browserTargets.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Open in browser")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.text2)
                                 FlowLayout(spacing: 6) {
-                                    ForEach(knownPorts, id: \.port) { item in
+                                    ForEach(browserTargets) { target in
                                         Button {
-                                            service.openInBrowser(ip: container.ipWithoutMask, port: item.port)
+                                            NSWorkspace.shared.open(target.url)
                                         } label: {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "safari")
                                                     .font(.system(size: 10))
-                                                Text(":\(item.port)")
+                                                Text(":\(target.containerPort)")
                                                     .font(.system(size: 11, design: .monospaced))
                                                 Text("·")
-                                                    .foregroundStyle(.tertiary)
-                                                Text(item.label)
+                                                    .foregroundStyle(Theme.text3)
+                                                Text(target.label)
                                                     .font(.system(size: 11))
-                                                    .foregroundStyle(.secondary)
+                                                    .foregroundStyle(Theme.text2)
                                             }
                                         }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
+                                        .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
+                                        .help(target.url.absoluteString)
                                     }
                                 }
                             }
@@ -178,8 +184,7 @@ struct InfoTabView: View {
                                 .frame(width: 90)
                                 .onSubmit { openCustomPort() }
                             Button("Open", action: openCustomPort)
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                                 .disabled(Int(customPort) == nil)
                         }
 
@@ -219,14 +224,20 @@ struct InfoTabView: View {
                     }
                 }
                 .padding(12)
+                .disabled(service.pendingContainers.contains(container.id))
             }
         }
-        .task { detail = await service.inspectContainer(container.id) }
+        // Re-inspect when the state changes: published ports and resources
+        // are only meaningful for the current run.
+        .task(id: container.state) { detail = await service.inspectContainer(container.id) }
+        .onAppear { if customPort.isEmpty { customPort = defaultPort } }
     }
 
     private func openCustomPort() {
-        guard let port = Int(customPort) else { return }
-        service.openInBrowser(ip: container.ipWithoutMask, port: port)
+        guard let port = Int(customPort),
+              let url = ContainerService.browserURL(containerPort: port, ip: container.ipWithoutMask, published: detail?.ports ?? [])
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

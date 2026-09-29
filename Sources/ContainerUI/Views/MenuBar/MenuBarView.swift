@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(\.openWindow) private var openWindow
 
     private var running: [ContainerInfo] {
         service.containers.filter { $0.state.isRunning }
@@ -65,12 +66,14 @@ struct MenuBarView: View {
             // Footer actions
             VStack(spacing: 2) {
                 MenuBarAction(icon: "macwindow", label: "Open ContainerUI") {
+                    // SwiftUI names the window "main-window-AppWindow-N", so the
+                    // old exact-match never found it; and once closed it's gone,
+                    // so it has to be reopened through openWindow.
                     NSApp.activate(ignoringOtherApps: true)
-                    for window in NSApp.windows where window.identifier?.rawValue == "main-window" {
+                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main-window") == true }) {
                         window.makeKeyAndOrderFront(nil)
-                    }
-                    if NSApp.windows.filter({ $0.isVisible }).isEmpty {
-                        NSApp.windows.first?.makeKeyAndOrderFront(nil)
+                    } else {
+                        openWindow(id: "main-window")
                     }
                 }
                 MenuBarAction(icon: "arrow.clockwise", label: "Refresh") {
@@ -112,13 +115,13 @@ struct MenuBarView: View {
         if service.serviceError != nil {
             Label("Error", systemImage: "exclamationmark.triangle.fill")
                 .labelStyle(.iconOnly)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warn)
                 .font(.system(size: 12))
         } else if service.isLoading {
             ProgressView().scaleEffect(0.5).frame(width: 14, height: 14)
         } else {
             Circle()
-                .fill(service.containers.isEmpty ? Color.secondary : Color.green)
+                .fill(service.containers.isEmpty ? Theme.text3 : Theme.accent)
                 .frame(width: 7, height: 7)
         }
     }
@@ -126,7 +129,7 @@ struct MenuBarView: View {
 
 struct MenuBarContainerRow: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var isHovering = false
 
     var body: some View {
@@ -148,9 +151,11 @@ struct MenuBarContainerRow: View {
             Spacer()
 
             if container.state.isRunning {
-                Text(container.uptimeDisplay)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(container.uptimeDisplay(at: context.date))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
 
                 Button {
                     Task { await service.stop(container.id) }
@@ -171,7 +176,7 @@ struct MenuBarContainerRow: View {
                 } label: {
                     Image(systemName: "play.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.accent)
                         .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)

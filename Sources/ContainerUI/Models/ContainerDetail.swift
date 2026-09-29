@@ -22,4 +22,6 @@ struct ContainerDetail {
     let ports: [PublishedPort]
     let cpus: Int
     let memoryInBytes: Int
+    /// The container's configuration as a Run sheet spec, for "Duplicate".
+    var runSpec = RunSpec()
 }

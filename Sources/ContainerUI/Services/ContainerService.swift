@@ -2,8 +2,6 @@ import Foundation
 import SwiftUI
 import UserNotifications
 
-let containerBin = "/opt/homebrew/bin/container"
-
 enum DaemonState {
     case unknown
     case notInstalled
@@ -12,112 +10,174 @@ enum DaemonState {
     case running
 }
 
+/// Owns all data read from the `container` CLI. `@Observable` (rather than
+/// `ObservableObject`) so a view only re-renders when a property it
+/// actually reads changes — with `ObservableObject` every poll re-rendered
+/// the whole window. Setters below also skip no-op assignments, since
+/// Observation notifies even when a value is set to itself.
 @MainActor
-final class ContainerService: ObservableObject {
-    // Containers
-    @Published var containers: [ContainerInfo] = []
-    @Published var isLoading = false
-    @Published var serviceError: String?
-    @Published var daemonState: DaemonState = .unknown
-    @Published var showCommandPalette = false
-    @Published var showRunSheet = false
-    @Published var sidebarItem: SidebarItem = .containers
+@Observable
+final class ContainerService {
+    // Containers (user containers only — see `builderContainer`)
+    var containers: [ContainerInfo] = []
+    var builderContainer: ContainerInfo?
+    var builderBusy = false
+    /// True only until the first container list arrives; background polls
+    /// don't flip it, so nothing flickers every refresh.
+    var isLoading = true
+    var serviceError: String?
+    var daemonState: DaemonState = .unknown
 
     // Images
-    @Published var images: [ImageInfo] = []
+    var images: [ImageInfo] = []
 
-    // Volumes
-    @Published var volumes: [VolumeInfo] = []
+    // Volumes & networks
+    var volumes: [VolumeInfo] = []
+    var networks: [NetworkInfo] = []
 
     // System
-    @Published var systemStatus: SystemStatusInfo?
-    @Published var systemDf: [SystemDfRow] = []
-    @Published var versionRows: [VersionRow] = []
+    var systemStatus: SystemStatusInfo?
+    var systemDf: [SystemDfRow] = []
+    var versionRows: [VersionRow] = []
 
     // Stats (per-container id)
-    @Published var latestStats: [String: ContainerStats] = [:]
-    @Published var statsHistory: [String: [ContainerStatsSample]] = [:]
-    var lastRawStats: [String: RawStatsSample] = [:]
+    var latestStats: [String: ContainerStats] = [:]
+    var statsHistory: [String: [ContainerStatsSample]] = [:]
+    @ObservationIgnored var lastRawStats: [String: RawStatsSample] = [:]
+
+    /// Builds, pulls and compose runs, newest first (see `BackgroundJob`).
+    var jobs: [BackgroundJob] = []
+
+    // Feedback
+    var toasts: [Toast] = []
+    /// Containers with an action in flight (start/stop/restart/remove/kill).
+    var pendingContainers: Set<String> = []
+    /// Containers the user just stopped from the app — no "stopped" alert.
+    @ObservationIgnored private var expectedStops: Set<String> = []
 
     // Updates
-    @Published var availableUpdate: GitHubReleaseInfo?
+    var availableUpdate: GitHubReleaseInfo?
 
     // Compose-lite (per compose-container-name, e.g. "<group>-<service>")
-    @Published var composeState: [String: ComposeServiceState] = [:]
+    var composeState: [String: ComposeServiceState] = [:]
 
-    var bin: String { containerBin }
+    /// Path of the `container` CLI in use (see `ContainerBinary`). When it
+    /// isn't installed this is the first default location, for display.
+    private(set) var bin: String = ContainerBinary.candidates[0]
+    private(set) var isBinaryInstalled = false
 
-    private var refreshTask: Task<Void, Never>?
-    private var updateCheckTask: Task<Void, Never>?
-    private var previousRunningIds: Set<String> = []
-    private var hasInitialFetch = false
+    @ObservationIgnored let runner: CommandRunning
+    /// `fetchJSONOrText` command keys whose `--format json` output failed to
+    /// decode, so later polls go straight to the text form.
+    @ObservationIgnored var jsonUnsupported: Set<String> = []
 
-    init() {
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var updateCheckTask: Task<Void, Never>?
+    @ObservationIgnored private var previousRunningIds: Set<String> = []
+    @ObservationIgnored private var hasInitialFetch = false
+
+    @ObservationIgnored private let fixedBinary: String?
+
+    /// `binary` pins the CLI path (tests use it with a fake `runner`);
+    /// otherwise it's resolved via `ContainerBinary`.
+    init(runner: CommandRunning = ProcessRunner(), binary: String? = nil, startBackgroundWork: Bool = true) {
+        self.runner = runner
+        self.fixedBinary = binary
+        reloadBinaryPath()
+        guard startBackgroundWork else { return }
         requestNotificationPermission()
         startAutoRefresh()
         startUpdateCheckLoop()
     }
-    deinit {
-        refreshTask?.cancel()
-        updateCheckTask?.cancel()
+    /// Assigns only when the value actually changed, so observers of an
+    /// unchanged property aren't invalidated on every poll.
+    func update<T: Equatable>(_ keyPath: ReferenceWritableKeyPath<ContainerService, T>, _ value: T) {
+        if self[keyPath: keyPath] != value { self[keyPath: keyPath] = value }
+    }
+
+    /// Re-resolves the CLI location, e.g. after the user picks a custom path.
+    func reloadBinaryPath() {
+        let resolved = fixedBinary ?? ContainerBinary.resolve()
+        update(\.bin, resolved ?? ContainerBinary.candidates[0])
+        update(\.isBinaryInstalled, resolved != nil)
+        jsonUnsupported = []
     }
 
     func startAutoRefresh() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.fetchContainers()
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard let self else { return }
+                await self.fetchContainers()
+                let delay = Self.pollInterval(
+                    base: UserDefaults.standard.object(forKey: "refreshInterval") as? Int ?? 5,
+                    appIsActive: NSApp?.isActive ?? true,
+                    daemonState: self.daemonState
+                )
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
         }
+    }
+
+    /// Seconds until the next container poll: the user's "Refresh every"
+    /// setting while the app is in front, three times slower in the
+    /// background (the menu bar still needs fresh data, just not as often),
+    /// and at least 15 s while the service is down or not installed.
+    nonisolated static func pollInterval(base: Int, appIsActive: Bool, daemonState: DaemonState) -> TimeInterval {
+        var seconds = TimeInterval(max(base, 1))
+        if !appIsActive { seconds *= 3 }
+        if daemonState == .notRunning || daemonState == .notInstalled { seconds = max(seconds, 15) }
+        return seconds
     }
 
     // MARK: – Containers
 
     func fetchContainers() async {
-        guard FileManager.default.fileExists(atPath: containerBin) else {
-            daemonState = .notInstalled
-            serviceError = nil
-            containers = []
+        if !isBinaryInstalled { reloadBinaryPath() }  // picks up a fresh install
+        guard isBinaryInstalled else {
+            update(\.daemonState, .notInstalled)
+            update(\.serviceError, nil)
+            update(\.containers, [])
+            update(\.isLoading, false)
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        defer { update(\.isLoading, false) }
         do {
-            let newContainers = try await fetchJSONOrText(
-                args: [bin, "list", "--all"],
+            let listed = try await fetchJSONOrText(
+                args: [bin] + CLI.list(),
                 jsonParse: Self.parseContainerListJSON,
                 textParse: Self.parseContainerList
             )
+            let newContainers = listed.filter { !$0.isBuilder }
+            let builder = listed.first(where: \.isBuilder)
+            update(\.builderContainer, builder)
 
+            let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
             if hasInitialFetch {
-                let newRunning = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
-                let stopped = previousRunningIds.subtracting(newRunning)
-                for id in stopped { notifyContainerStopped(id) }
+                for id in Self.unexpectedStops(previous: previousRunningIds, current: newRunning, expected: expectedStops) {
+                    notifyContainerStopped(id)
+                }
             }
-
-            previousRunningIds = Set(newContainers.filter { $0.state.isRunning }.map { $0.id })
+            // Expectations are consumed once the container is seen stopped.
+            expectedStops.formIntersection(newRunning)
+            previousRunningIds = newRunning
             hasInitialFetch = true
-            containers = newContainers
-            serviceError = nil
-            if daemonState != .running { daemonState = .running }
+            update(\.containers, newContainers)
+            update(\.serviceError, nil)
+            update(\.daemonState, .running)
         } catch {
-            let msg = error.localizedDescription.lowercased()
-            let isDaemonDown = msg.contains("connection refused")
-                            || msg.contains("not running")
-                            || msg.contains("failed to connect")
-                            || msg.contains("broken pipe")
-                            || msg.contains("no such file or directory")
-                            || msg.contains("daemon")
-                            || msg.contains("socket")
-                            || msg.contains("xpc")
-            if isDaemonDown {
-                daemonState = .notRunning
-                serviceError = nil
-                containers = []
+            if case CLIError.daemonNotRunning = error {
+                // Start over once the service returns, rather than notifying
+                // for every container that was running before it went down.
+                hasInitialFetch = false
+                previousRunningIds = []
+                update(\.daemonState, .notRunning)
+                update(\.serviceError, nil)
+                update(\.containers, [])
+                update(\.builderContainer, nil)
             } else {
-                serviceError = error.localizedDescription
+                update(\.serviceError, error.localizedDescription)
             }
         }
     }
@@ -126,12 +186,12 @@ final class ContainerService: ObservableObject {
         daemonState = .starting
         serviceError = nil
         do {
-            try await shell([bin, "system", "start"])
+            try await cli(CLI.systemStart(), timeout: nil)
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             await fetchContainers()
         } catch {
             daemonState = .notRunning
-            serviceError = "Could not start service: \(error.localizedDescription)"
+            serviceError = String(localized: "Could not start service: \(error.localizedDescription)")
         }
     }
 
@@ -139,62 +199,122 @@ final class ContainerService: ObservableObject {
         daemonState = .starting  // reuse "transitioning" state for the spinner
         serviceError = nil
         do {
-            try await shell([bin, "system", "stop"])
+            try await cli(CLI.systemStop())
             containers = []
             daemonState = .notRunning
         } catch {
             // If stop fails, re-check actual state
             await fetchContainers()
-            serviceError = "Could not stop service: \(error.localizedDescription)"
+            serviceError = String(localized: "Could not stop service: \(error.localizedDescription)")
         }
     }
 
+    // MARK: – Container actions
+    //
+    // Each action marks the container as pending (the card shows a spinner
+    // and disables its buttons), reports failures as a toast instead of
+    // swallowing them, and refreshes the list afterwards.
+
     func start(_ id: String) async {
-        _ = try? await shell([bin, "start", id])
-        await fetchContainers()
+        await performContainerAction(id, failure: String(localized: "Couldn't start \(id)")) {
+            try await self.cli(CLI.start(id))
+        }
     }
 
     func stop(_ id: String) async {
-        _ = try? await shell([bin, "stop", id])
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't stop \(id)")) {
+            try await self.cli(CLI.stop(id))
+        }
+    }
+
+    private func performContainerAction(_ id: String, failure: String, _ action: @escaping () async throws -> Void) async {
+        pendingContainers.insert(id)
+        defer { pendingContainers.remove(id) }
+        do {
+            try await action()
+        } catch {
+            expectedStops.remove(id)
+            report(error, as: failure)
+        }
         await fetchContainers()
     }
 
-    /// Refreshes whichever sidebar section is currently on screen (⌘R).
-    func refreshCurrentSection() async {
-        switch sidebarItem {
+    /// Ids that were running, aren't any more, and weren't stopped by the
+    /// user from this app — the ones worth a "Container stopped" alert.
+    nonisolated static func unexpectedStops(previous: Set<String>, current: Set<String>, expected: Set<String>) -> Set<String> {
+        previous.subtracting(current).subtracting(expected)
+    }
+
+    /// Refreshes the given sidebar section (⌘R refreshes the visible one).
+    func refresh(_ section: SidebarItem) async {
+        switch section {
         case .containers: await fetchContainers()
         case .images:     await fetchImages()
         case .volumes:    await fetchVolumes()
+        case .networks:   await fetchNetworks(); await fetchContainers()
         case .stats, .logs: await fetchSystemInfo()
-        case .registry, .build, .groups, .settings: break
+        case .registry, .build, .groups, .settings: await fetchContainers()
         }
     }
 
     func restart(_ id: String) async {
-        _ = try? await shell([bin, "stop", id])
-        _ = try? await shell([bin, "start", id])
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't restart \(id)")) {
+            try await self.cli(CLI.stop(id))
+            try await self.cli(CLI.start(id))
+        }
     }
 
     func remove(_ id: String) async {
-        // Stop first if running, then remove
-        _ = try? await shell([bin, "stop", id])
-        _ = try? await shell([bin, "rm", id])
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't remove \(id)")) {
+            try await self.cli(CLI.delete(id))
+        }
     }
 
     func kill(_ id: String) async {
-        _ = try? await shell([bin, "kill", id])
-        await fetchContainers()
+        expectedStops.insert(id)
+        await performContainerAction(id, failure: String(localized: "Couldn't kill \(id)")) {
+            try await self.cli(CLI.kill(id))
+        }
     }
 
     func pruneContainers() async {
-        _ = try? await shell([bin, "prune"])
+        do { try await cli(CLI.prune()) } catch { report(error, as: String(localized: "Couldn't prune containers")) }
         await fetchContainers()
     }
 
-    func fetchLogs(for id: String, lines: Int = 200) async -> String {
-        (try? await shell([bin, "logs", "--tail", "\(lines)", id])) ?? ""
+    // MARK: – Toasts
+
+    /// Shows `error` as a dismissible toast, prefixed with what failed.
+    func report(_ error: Error, as title: String) {
+        if case CLIError.cancelled = error { return }
+        showToast(Toast(title: title, message: error.localizedDescription, style: .error))
+    }
+
+    func showToast(_ toast: Toast) {
+        toasts.append(toast)
+        if toasts.count > 4 { toasts.removeFirst(toasts.count - 4) }
+        let id = toast.id
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: toast.style == .error ? 8_000_000_000 : 4_000_000_000)
+            self?.dismissToast(id)
+        }
+    }
+
+    func dismissToast(_ id: UUID) {
+        toasts.removeAll { $0.id == id }
+    }
+
+    /// `lines: nil` fetches the whole log; `boot` the VM boot log.
+    func fetchLogs(for id: String, lines: Int?, boot: Bool = false) async throws -> String {
+        try await cli(CLI.logs(id, lines: lines, boot: boot))
+    }
+
+    /// Follows a container's log (`logs --follow`) line by line.
+    func followLogs(for id: String, lines: Int?, boot: Bool = false) -> ProcessStream {
+        ProcessRunner.stream([bin] + CLI.logs(id, lines: lines, follow: true, boot: boot))
     }
 
     /// Single-quotes `s` for safe use as one shell argument, escaping any
@@ -231,22 +351,22 @@ final class ContainerService: ObservableObject {
         NSAppleScript(source: script)?.executeAndReturnError(&err)
     }
 
-    func openInBrowser(ip: String, port: Int) {
-        if let url = URL(string: "http://localhost:\(port)") {
-            NSWorkspace.shared.open(url)
+    /// Where a browser should go to reach `containerPort`: through its
+    /// published host mapping when there is one, otherwise straight to the
+    /// container's own IP (Apple Container gives every container an address
+    /// reachable from the host). `localhost:<containerPort>` — the old
+    /// behaviour — only worked when the same port happened to be published.
+    nonisolated static func browserURL(containerPort: Int, ip: String, published: [ContainerDetail.PublishedPort]) -> URL? {
+        if let mapping = published.first(where: { $0.containerPort == containerPort }) {
+            let host = mapping.hostAddress.isEmpty || mapping.hostAddress == "0.0.0.0" ? "localhost" : mapping.hostAddress
+            return URL(string: "http://\(host):\(mapping.hostPort)")
         }
+        guard !ip.isEmpty else { return nil }
+        return URL(string: "http://\(ip):\(containerPort)")
     }
 
-    func runContainer(image: String, name: String?, ports: [(host: String, container: String)], volumes: [String] = [], memory: String, cpus: Int, env: [String]) async throws {
-        var args = [bin, "run"]
-        if let name { args += ["--name", name] }
-        args += ["-m", memory]
-        if cpus > 1 { args += ["--cpus", "\(cpus)"] }
-        for p in ports   { args += ["-p", "\(p.host):\(p.container)"] }
-        for v in volumes { args += ["-v", v] }
-        for e in env     { args += ["-e", e] }
-        args.append(image)
-        try await shell(args)
+    func runContainer(_ spec: RunSpec) async throws {
+        try await cli(spec.arguments, timeout: nil)  // may pull the image first
         await fetchContainers()
     }
 
@@ -269,7 +389,9 @@ final class ContainerService: ObservableObject {
     /// "check automatically" preference; the background loop does not.
     func checkForUpdates(force: Bool = false) async {
         guard force || UserDefaults.standard.object(forKey: "autoCheckForUpdates") as? Bool ?? true else { return }
-        guard let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
+        guard let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+              !local.hasSuffix("-dev") || force  // local builds aren't "out of date"
+        else { return }
         guard let release = try? await UpdateChecker.fetchLatestRelease(),
               !release.draft, !release.prerelease,
               UpdateChecker.isNewer(release.tagName, than: local)
@@ -319,106 +441,43 @@ final class ContainerService: ObservableObject {
 
     // MARK: – Shell
 
-    /// Runs `args[0]` with `args.dropFirst()` as arguments directly via
-    /// `Process` — no `/bin/sh -c`, so metacharacters in any argument
-    /// (spaces, `;`, `$(...)`, …) are inert rather than shell-interpreted.
+    /// Runs `args[0]` with `args.dropFirst()` as arguments directly — no
+    /// `/bin/sh -c`, so metacharacters in any argument (spaces, `;`,
+    /// `$(...)`, …) are inert rather than shell-interpreted. Throws
+    /// `CLIError` on a non-zero exit, timeout or cancellation (cancelling the
+    /// calling task terminates the process). Pass `timeout: nil` for
+    /// commands that legitimately run long (pulls, `run` that pulls first).
+    /// `shell` with the resolved `container` binary prepended.
     @discardableResult
-    func shell(_ args: [String]) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                let outPipe = Pipe()
-                let errPipe = Pipe()
-
-                process.executableURL = URL(fileURLWithPath: args[0])
-                process.arguments = Array(args.dropFirst())
-                process.standardOutput = outPipe
-                process.standardError = errPipe
-
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                process.waitUntilExit()
-                let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                if process.terminationStatus != 0 {
-                    let errMsg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "Unknown error"
-                    continuation.resume(throwing: ContainerError.failed(errMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else {
-                    continuation.resume(returning: out)
-                }
-            }
-        }
+    func cli(_ args: [String], stdin: String? = nil, timeout: TimeInterval? = ProcessRunner.defaultTimeout) async throws -> String {
+        try await shell([bin] + args, stdin: stdin, timeout: timeout)
     }
 
-    /// Like `shell(_:)`, but writes `stdin` to the process's standard input
-    /// (then closes it) instead of leaving it unconnected — for
-    /// `--password-stdin`-style flags, so a secret never appears as a
-    /// process argument (visible in `ps`) or gets logged anywhere.
     @discardableResult
-    func shellWithStdin(_ args: [String], stdin: String) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                let outPipe = Pipe()
-                let errPipe = Pipe()
-                let inPipe = Pipe()
-
-                process.executableURL = URL(fileURLWithPath: args[0])
-                process.arguments = Array(args.dropFirst())
-                process.standardOutput = outPipe
-                process.standardError = errPipe
-                process.standardInput = inPipe
-
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                if let data = stdin.data(using: .utf8) {
-                    inPipe.fileHandleForWriting.write(data)
-                }
-                try? inPipe.fileHandleForWriting.close()
-
-                process.waitUntilExit()
-                let out = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-
-                if process.terminationStatus != 0 {
-                    let errMsg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "Unknown error"
-                    continuation.resume(throwing: ContainerError.failed(errMsg.trimmingCharacters(in: .whitespacesAndNewlines)))
-                } else {
-                    continuation.resume(returning: out)
-                }
-            }
+    func shell(_ args: [String], stdin: String? = nil, timeout: TimeInterval? = ProcessRunner.defaultTimeout) async throws -> String {
+        let output = try await runner.run(args, stdin: stdin, timeout: timeout).get()
+        guard output.exitCode == 0 else {
+            throw CLIError.classify(stderr: output.stderr, code: output.exitCode)
         }
-    }
-
-    enum ContainerError: LocalizedError {
-        case failed(String)
-        var errorDescription: String? {
-            if case .failed(let msg) = self { return msg }
-            return nil
-        }
+        return output.stdout
     }
 
     /// Runs `args + ["--format", "json"]` and decodes it; falls back to the
-    /// plain-args form (and its fixed-width parser) if the JSON attempt fails
-    /// to run or to decode — e.g. an older `container` CLI without `--format`.
+    /// plain-args form (and its fixed-width parser) if the JSON output can't
+    /// be decoded — e.g. an older `container` CLI without `--format`. Once a
+    /// command's JSON has failed to decode it isn't retried, so each poll
+    /// costs one process, not two. A service-down error is rethrown
+    /// immediately rather than retried in text form.
     func fetchJSONOrText<T>(
         args: [String],
         jsonParse: (Data) -> [T]?,
         textParse: (String) -> [T]
     ) async throws -> [T] {
-        if let jsonOutput = try? await shell(args + ["--format", "json"]),
-           let data = jsonOutput.data(using: .utf8),
-           let parsed = jsonParse(data) {
-            return parsed
+        let key = args.dropFirst().joined(separator: " ")
+        if !jsonUnsupported.contains(key) {
+            let jsonOutput = try await shell(args + ["--format", "json"])
+            if let parsed = jsonParse(Data(jsonOutput.utf8)) { return parsed }
+            jsonUnsupported.insert(key)
         }
         let output = try await shell(args)
         return textParse(output)
@@ -431,6 +490,27 @@ final class ContainerService: ObservableObject {
         return header.distance(from: header.startIndex, to: range.lowerBound)
     }
 
+    /// Parses the CLI's fixed-width table output: finds each column's offset
+    /// in the header line and slices every data row at those offsets.
+    /// Returns one array of trimmed fields per row, in `columns` order;
+    /// rows whose first field is empty are skipped. Empty when the output
+    /// has no data rows or the header lacks one of the columns.
+    nonisolated static func tableRows(_ output: String, columns: [String]) -> [[String]] {
+        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
+        guard lines.count > 1 else { return [] }
+        let offsets = columns.map { columnOffset($0, in: lines[0]) }
+        guard !offsets.isEmpty, offsets.allSatisfy({ $0 != nil }) else { return [] }
+        let starts = offsets.map { $0! }
+        return lines.dropFirst().compactMap { line in
+            let chars = Array(line)
+            guard chars.count > starts[0] else { return nil }
+            let fields = starts.indices.map { i in
+                field(chars, from: starts[i], to: i + 1 < starts.count ? starts[i + 1] : nil)
+            }
+            return fields[0].isEmpty ? nil : fields
+        }
+    }
+
     nonisolated static func field(_ chars: [Character], from: Int, to: Int?) -> String {
         let start = min(from, chars.count)
         let end   = to.map { min($0, chars.count) } ?? chars.count
@@ -441,40 +521,9 @@ final class ContainerService: ObservableObject {
     // MARK: – Container parsing
 
     nonisolated static func parseContainerList(_ output: String) -> [ContainerInfo] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let idOff      = columnOffset("ID",      in: header),
-            let imageOff   = columnOffset("IMAGE",   in: header),
-            let osOff      = columnOffset("OS",      in: header),
-            let archOff    = columnOffset("ARCH",    in: header),
-            let stateOff   = columnOffset("STATE",   in: header),
-            let ipOff      = columnOffset("IP",      in: header),
-            let cpusOff    = columnOffset("CPUS",    in: header),
-            let memOff     = columnOffset("MEMORY",  in: header),
-            let startedOff = columnOffset("STARTED", in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > idOff else { return nil }
-            let id      = field(chars, from: idOff,      to: imageOff)
-            let image   = field(chars, from: imageOff,   to: osOff)
-            let os      = field(chars, from: osOff,      to: archOff)
-            let arch    = field(chars, from: archOff,    to: stateOff)
-            let state   = field(chars, from: stateOff,   to: ipOff)
-            let ip      = field(chars, from: ipOff,      to: cpusOff)
-            let cpus    = field(chars, from: cpusOff,    to: memOff)
-            let memory  = field(chars, from: memOff,     to: startedOff)
-            let started = field(chars, from: startedOff, to: nil)
-            guard !id.isEmpty else { return nil }
-            return ContainerInfo(
-                id: id, image: image, os: os, arch: arch,
-                state: ContainerState(raw: state),
-                ip: ip, cpus: Int(cpus) ?? 0, memory: memory, started: started
-            )
+        tableRows(output, columns: ["ID", "IMAGE", "OS", "ARCH", "STATE", "IP", "CPUS", "MEMORY", "STARTED"]).map { f in
+            ContainerInfo(id: f[0], image: f[1], os: f[2], arch: f[3], state: ContainerState(raw: f[4]),
+                          ip: f[5], cpus: Int(f[6]) ?? 0, memory: f[7], started: f[8])
         }
     }
 
@@ -485,12 +534,22 @@ final class ContainerService: ObservableObject {
             struct ImageRef: Decodable { let reference: String }
             struct Platform: Decodable { let os: String; let architecture: String }
             struct Resources: Decodable { let cpus: Int; let memoryInBytes: Int }
+            struct Mount: Decodable {
+                struct Kind: Decodable {
+                    struct Volume: Decodable { let name: String }
+                    let volume: Volume?
+                }
+                let source: String
+                let type: Kind?
+            }
             let image: ImageRef
             let platform: Platform
             let resources: Resources
+            let labels: [String: String]?
+            let mounts: [Mount]?
         }
         struct Status: Decodable {
-            struct NetworkStatus: Decodable { let ipv4Address: String? }
+            struct NetworkStatus: Decodable { let ipv4Address: String?; let network: String? }
             let networks: [NetworkStatus]
             let state: String
             let startedDate: String?
@@ -512,7 +571,11 @@ final class ContainerService: ObservableObject {
                 ip: entry.status.networks.first?.ipv4Address ?? "",
                 cpus: entry.configuration.resources.cpus,
                 memory: formatBytes(entry.configuration.resources.memoryInBytes),
-                started: entry.status.startedDate ?? ""
+                started: entry.status.startedDate ?? "",
+                labels: entry.configuration.labels ?? [:],
+                networks: entry.status.networks.compactMap(\.network),
+                mountSources: (entry.configuration.mounts ?? []).map(\.source).filter { !$0.isEmpty },
+                volumeNames: (entry.configuration.mounts ?? []).compactMap { $0.type?.volume?.name }
             )
         }
     }

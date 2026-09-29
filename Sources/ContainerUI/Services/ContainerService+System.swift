@@ -3,14 +3,14 @@ import Foundation
 extension ContainerService {
 
     func fetchSystemInfo() async {
-        async let statusJSONOut = try? shell([bin, "system", "status", "--format", "json"])
+        async let statusJSONOut = try? cli(CLI.systemStatus() + ["--format", "json"])
         async let dfRows        = try? fetchJSONOrText(
-            args: [bin, "system", "df"],
+            args: [bin] + CLI.systemDf(),
             jsonParse: Self.parseSystemDfJSON,
             textParse: Self.parseSystemDf
         )
         async let versionRowsOut = try? fetchJSONOrText(
-            args: [bin, "system", "version"],
+            args: [bin] + CLI.systemVersion(),
             jsonParse: Self.parseVersionRowsJSON,
             textParse: Self.parseVersionRows
         )
@@ -18,29 +18,67 @@ extension ContainerService {
         let (s, d, v) = await (statusJSONOut, dfRows, versionRowsOut)
 
         if let s, let data = s.data(using: .utf8), let parsed = Self.parseSystemStatusJSON(data) {
-            systemStatus = parsed
+            update(\.systemStatus, parsed)
         } else {
-            let textOut = (try? await shell([bin, "system", "status"])) ?? ""
-            systemStatus = Self.parseSystemStatus(textOut)
+            let textOut = (try? await cli(CLI.systemStatus())) ?? ""
+            update(\.systemStatus, Self.parseSystemStatus(textOut))
         }
-        systemDf    = d ?? []
-        versionRows = v ?? []
+        update(\.systemDf, d ?? [])
+        update(\.versionRows, v ?? [])
     }
 
-    func fetchSystemLogs() async -> String {
-        (try? await shell([bin, "system", "logs"])) ?? ""
+    /// `last` is a CLI duration ("5m", "1h", "1d").
+    func fetchSystemLogs(last: String) async throws -> String {
+        try await cli(CLI.systemLogs(last: last))
+    }
+
+    func followSystemLogs(last: String) -> ProcessStream {
+        ProcessRunner.stream([bin] + CLI.systemLogs(last: last, follow: true))
     }
 
     func startService() async {
-        _ = try? await shell([bin, "system", "start"])
+        do { try await cli(CLI.systemStart(), timeout: nil) } catch { report(error, as: String(localized: "Couldn't start the service")) }
         await fetchSystemInfo()
         await fetchContainers()
     }
 
     func stopService() async {
-        _ = try? await shell([bin, "system", "stop"])
+        do { try await cli(CLI.systemStop()) } catch { report(error, as: String(localized: "Couldn't stop the service")) }
         await fetchSystemInfo()
         await fetchContainers()
+    }
+
+    // MARK: – DNS domains
+
+    func fetchDNSDomains() async -> [String] {
+        let output = (try? await cli(CLI.dnsList())) ?? ""
+        return output.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    /// A DNS label: letters, digits and hyphens, not starting/ending with a
+    /// hyphen. Validated because the name ends up in an administrator
+    /// AppleScript `do shell script`.
+    nonisolated static func isValidDNSDomain(_ domain: String) -> Bool {
+        domain.range(of: #"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"#, options: .regularExpression) != nil
+    }
+
+    /// Creates or deletes a local DNS domain. Both need root, so they run
+    /// through an administrator-privileges AppleScript prompt.
+    func setDNSDomain(_ domain: String, create: Bool) async {
+        guard Self.isValidDNSDomain(domain) else { return }
+        let args = [bin] + (create ? CLI.dnsCreate(domain) : CLI.dnsDelete(domain))
+        let command = args.map(Self.shellQuote).joined(separator: " ")
+        let script = "do shell script \"\(Self.appleScriptEscape(command))\" with administrator privileges"
+        do {
+            try await shell(["/usr/bin/osascript", "-e", script], timeout: nil)
+            showToast(Toast(title: create
+                ? String(localized: "Created .\(domain) domain")
+                : String(localized: "Removed .\(domain) domain")))
+        } catch {
+            report(error, as: create
+                ? String(localized: "Couldn't create .\(domain) domain")
+                : String(localized: "Couldn't remove .\(domain) domain"))
+        }
     }
 
     nonisolated static func parseSystemStatus(_ output: String) -> SystemStatusInfo? {
@@ -51,74 +89,66 @@ extension ContainerService {
             values[parts[0]] = parts[1...].joined(separator: " ")
         }
         guard let status = values["status"] else { return nil }
+        // CLI 1.4 prefixes keys with their group ("paths.appRoot",
+        // "server.version"); older versions used flat keys.
         return SystemStatusInfo(
             status:           status,
-            appRoot:          values["appRoot"] ?? "",
-            installRoot:      values["installRoot"] ?? "",
-            apiserverVersion: values["apiserver.version"] ?? ""
+            appRoot:          values["paths.appRoot"] ?? values["appRoot"] ?? "",
+            installRoot:      values["paths.installRoot"] ?? values["installRoot"] ?? "",
+            apiserverVersion: values["server.version"] ?? values["apiserver.version"] ?? "",
+            hostCPUs:          values["host.cpus"].flatMap { Int($0) },
+            containersRunning: values["containers.running"].flatMap { Int($0) },
+            containersTotal:   values["containers.total"].flatMap { Int($0) },
+            imageCount:        values["images.total"].flatMap { Int($0) }
         )
     }
 
     nonisolated static func parseSystemDf(_ output: String) -> [SystemDfRow] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let typeOff        = columnOffset("TYPE",        in: header),
-            let totalOff       = columnOffset("TOTAL",       in: header),
-            let activeOff      = columnOffset("ACTIVE",      in: header),
-            let sizeOff        = columnOffset("SIZE",        in: header),
-            let reclaimOff     = columnOffset("RECLAIMABLE", in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > typeOff else { return nil }
-            let type       = field(chars, from: typeOff,    to: totalOff)
-            let total      = field(chars, from: totalOff,   to: activeOff)
-            let active     = field(chars, from: activeOff,  to: sizeOff)
-            let size       = field(chars, from: sizeOff,    to: reclaimOff)
-            let reclaimable = field(chars, from: reclaimOff, to: nil)
-            guard !type.isEmpty else { return nil }
-            return SystemDfRow(type: type, total: total, active: active,
-                               size: size, reclaimable: reclaimable)
+        tableRows(output, columns: ["TYPE", "TOTAL", "ACTIVE", "SIZE", "RECLAIMABLE"]).map { f in
+            SystemDfRow(type: f[0], total: f[1], active: f[2], size: f[3], reclaimable: f[4])
         }
     }
 
     nonisolated static func parseVersionRows(_ output: String) -> [VersionRow] {
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        let header = lines[0]
-        guard
-            let compOff    = columnOffset("COMPONENT", in: header),
-            let verOff     = columnOffset("VERSION",   in: header),
-            let buildOff   = columnOffset("BUILD",     in: header)
-        else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let chars = Array(line)
-            guard chars.count > compOff else { return nil }
-            let comp  = field(chars, from: compOff,  to: verOff)
-            let ver   = field(chars, from: verOff,   to: buildOff)
-            let build = field(chars, from: buildOff, to: nil)
-            guard !comp.isEmpty else { return nil }
-            return VersionRow(component: comp, version: ver, build: build)
+        tableRows(output, columns: ["COMPONENT", "VERSION", "BUILD"]).map { f in
+            VersionRow(component: f[0], version: f[1], build: f[2])
         }
     }
 
     // MARK: – JSON parsing
 
-    private struct SystemStatusJSON: Decodable {
+    /// Pre-1.4 shape: flat keys.
+    private struct SystemStatusFlatJSON: Decodable {
         let status: String
         let appRoot: String
         let installRoot: String
         let apiServerVersion: String
     }
 
+    /// 1.4 shape: grouped into `paths`, `server`, `host`, `resources`.
+    private struct SystemStatusJSON: Decodable {
+        struct Paths: Decodable { let appRoot: String; let installRoot: String }
+        struct Component: Decodable { let version: String }
+        struct Host: Decodable { let cpus: Int? }
+        struct Resources: Decodable { let containersRunning: Int?; let containersTotal: Int?; let images: Int? }
+        let status: String
+        let paths: Paths
+        let server: Component
+        let host: Host?
+        let resources: Resources?
+    }
+
     nonisolated static func parseSystemStatusJSON(_ data: Data) -> SystemStatusInfo? {
-        guard let s = try? JSONDecoder().decode(SystemStatusJSON.self, from: data) else { return nil }
+        let decoder = JSONDecoder()
+        if let s = try? decoder.decode(SystemStatusJSON.self, from: data) {
+            return SystemStatusInfo(
+                status: s.status, appRoot: s.paths.appRoot, installRoot: s.paths.installRoot,
+                apiserverVersion: s.server.version, hostCPUs: s.host?.cpus,
+                containersRunning: s.resources?.containersRunning,
+                containersTotal: s.resources?.containersTotal, imageCount: s.resources?.images
+            )
+        }
+        guard let s = try? decoder.decode(SystemStatusFlatJSON.self, from: data) else { return nil }
         return SystemStatusInfo(status: s.status, appRoot: s.appRoot,
                                  installRoot: s.installRoot, apiserverVersion: s.apiServerVersion)
     }

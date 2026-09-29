@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RegistryLoginSheet: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @Environment(\.dismiss) private var dismiss
 
     @State private var server = ""
@@ -63,7 +63,7 @@ struct RegistryLoginSheet: View {
                         Text(isLoggingIn ? "Logging in…" : "Log In")
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(BrandButtonStyle(kind: .primary))
                 .disabled(!canSubmit || isLoggingIn)
             }
         }

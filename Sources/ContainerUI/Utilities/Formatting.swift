@@ -7,9 +7,14 @@ func formatCount(_ n: Int) -> String {
     return "\(n)"
 }
 
-func formatBytes(_ bytes: Int) -> String {
+// Foundation formatters are thread-safe for formatting once configured.
+nonisolated(unsafe) private let byteFormatter: ByteCountFormatter = {
     let formatter = ByteCountFormatter()
     formatter.countStyle = .memory
     formatter.allowedUnits = [.useKB, .useMB, .useGB, .useTB]
-    return formatter.string(fromByteCount: Int64(bytes))
+    return formatter
+}()
+
+func formatBytes(_ bytes: Int) -> String {
+    byteFormatter.string(fromByteCount: Int64(bytes))
 }

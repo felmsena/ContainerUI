@@ -3,21 +3,18 @@ import SwiftUI
 struct ContainerCardView: View {
     let container: ContainerInfo
     let isSelected: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showRemoveAlert = false
     @State private var showKillAlert = false
 
-    /// Stable per-container icon hue derived from the image name, so cards
-    /// read as visually distinct at a glance (mirrors the mockup's colored
-    /// icon chips without fabricating data that isn't actually available).
-    private var iconHue: Color {
-        let palette: [Color] = [
-            Color(hex: "#3B82F6"), Color(hex: "#22C55E"), Color(hex: "#EAB308"),
-            Color(hex: "#A855F7"), Color(hex: "#EF4444"), Color(hex: "#14B8A6")
-        ]
-        let hash = abs(container.shortImage.hashValue)
-        return palette[hash % palette.count]
-    }
+    /// Same icon and color as the detail header and the Images list. (The
+    /// old per-card hue came from `hashValue`, which Swift seeds randomly
+    /// per launch, so colors changed every time the app started.)
+    private var iconInfo: (symbol: String, color: Color) { imageIcon(for: container.image) }
+    private var iconHue: Color { iconInfo.color == .secondary ? Theme.text2 : iconInfo.color }
+
+    private var isPending: Bool { service.pendingContainers.contains(container.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -26,7 +23,7 @@ struct ContainerCardView: View {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(iconHue.opacity(0.16))
                         .frame(width: 34, height: 34)
-                    Image(systemName: "shippingbox.fill")
+                    Image(systemName: iconInfo.symbol)
                         .font(.system(size: 13))
                         .foregroundStyle(iconHue)
                 }
@@ -65,12 +62,16 @@ struct ContainerCardView: View {
                 MetaItem(label: "CPUs", value: "\(container.cpus)")
                 MetaItem(label: "Arch", value: container.arch)
                 if container.state.isRunning {
-                    MetaItem(label: "Uptime", value: container.uptimeDisplay, highlight: true)
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        MetaItem(label: "Uptime", value: container.uptimeDisplay(at: context.date), highlight: true)
+                    }
                 }
             }
 
             HStack(spacing: 5) {
-                if container.state.isRunning {
+                if isPending {
+                    ProgressView().controlSize(.small).frame(width: 26, height: 26)
+                } else if container.state.isRunning {
                     CardButton(icon: "terminal", tooltip: "Open shell") {
                         service.openShell(for: container.id)
                     }
@@ -89,6 +90,7 @@ struct ContainerCardView: View {
                 CardButton(icon: "trash", tooltip: "Remove", destructive: true) {
                     showRemoveAlert = true
                 }
+                .disabled(isPending)
             }
         }
         .padding(.horizontal, 14)
@@ -132,6 +134,12 @@ struct ContainerCardView: View {
                 } label: {
                     Label("Start", systemImage: "play.fill")
                 }
+            }
+            Divider()
+            Button {
+                Task { if let spec = await service.duplicateSpec(for: container.id) { app.runContainer(spec) } }
+            } label: {
+                Label("Duplicate…", systemImage: "plus.square.on.square")
             }
             Divider()
             Button(role: .destructive) {

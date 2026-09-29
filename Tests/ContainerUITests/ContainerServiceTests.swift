@@ -42,7 +42,7 @@ final class ContainerServiceTests: XCTestCase {
         }
         let rest = script[lineRange.upperBound...]
         var unescapedQuotes = 0
-        var chars = Array(rest)
+        let chars = Array(rest)
         var i = 0
         while i < chars.count {
             if chars[i] == "\\" {

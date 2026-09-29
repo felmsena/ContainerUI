@@ -7,7 +7,7 @@ struct ErrorBanner: View {
         case warning
         case info
 
-        var tint: Color { self == .warning ? .orange : .blue }
+        var tint: Color { self == .warning ? Theme.warn : Theme.accent }
         var icon: String { self == .warning ? "exclamationmark.triangle.fill" : "arrow.down.circle.fill" }
     }
 
@@ -26,7 +26,7 @@ struct ErrorBanner: View {
 
             Text(message)
                 .font(.system(size: 12))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Theme.text)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -36,13 +36,13 @@ struct ErrorBanner: View {
                 Button(actionLabel, action: action)
                     .font(.system(size: 12, weight: .medium))
                     .buttonStyle(.plain)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(style.tint)
             }
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.text3)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Dismiss")

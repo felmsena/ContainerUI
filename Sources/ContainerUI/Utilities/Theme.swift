@@ -28,6 +28,28 @@ enum Theme {
 
     static let shadow = dynamic(dark: Color.black.opacity(0.4), light: Color(hex: "#141E19").opacity(0.08))
 
+    /// Categorical hues for section badges and icons (from the mockup's
+    /// sidebar), named by role so screens don't repeat hex literals.
+    enum Hue {
+        static let blue = Color(hex: "#3B82F6")
+        static let amber = Color(hex: "#D97706")
+        static let violet = Color(hex: "#7C6FE0")
+        static let rose = Color(hex: "#E2596B")
+        static let teal = Color(hex: "#14B8A6")
+        static let slate = Color(hex: "#64748B")
+        static let gray = Color(hex: "#889098")
+        static let indigo = Color(hex: "#6366F1")
+
+        static let images = blue
+        static let volumes = amber
+        static let networks = indigo
+        static let registry = violet
+        static let build = rose
+        static let groups = teal
+        static let logs = slate
+        static let settings = gray
+    }
+
     private static func dynamic(dark: String, light: String) -> Color {
         dynamic(dark: Color(hex: dark), light: Color(hex: light))
     }

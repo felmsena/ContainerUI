@@ -7,7 +7,7 @@ import XCTest
 /// switch the system's language.
 final class LocalizationTests: XCTestCase {
 
-    private static var spanishStrings: [String: String] = {
+    private static let spanishStrings: [String: String] = {
         guard let path = Bundle.module.path(forResource: "es", ofType: "lproj"),
               let bundle = Bundle(path: path) else {
             XCTFail("es.lproj not found in resource bundle")
@@ -175,5 +175,22 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(es("Remove \"%@\"?"), "¿Quitar \"%@\"?")
         XCTAssertEqual(es("Kill \"%@\"?"), "¿Forzar el cierre de \"%@\"?")
         XCTAssertEqual(es("This action cannot be undone."), "Esta acción no se puede deshacer.")
+    }
+}
+
+extension LocalizationTests {
+    func testNewSectionsAndFeatures() {
+        let bundle = Bundle.module.path(forResource: "es", ofType: "lproj").flatMap(Bundle.init(path:))
+        func es(_ key: String) -> String? {
+            let value = bundle?.localizedString(forKey: key, value: "\u{0}", table: nil)
+            return value == "\u{0}" ? nil : value
+        }
+        XCTAssertEqual(es("Networks"), "Redes")
+        XCTAssertEqual(es("Select a container"), "Seleccioná un contenedor")
+        XCTAssertEqual(es("Activity"), "Actividad")
+        XCTAssertEqual(es("Follow"), "Seguir")
+        XCTAssertEqual(es("Resources"), "Recursos")
+        XCTAssertNotNil(es("Couldn't stop %@"))
+        XCTAssertNotNil(es("Remove %lld containers?"))
     }
 }

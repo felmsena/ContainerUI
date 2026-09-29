@@ -358,3 +358,206 @@
 "Pending" = "Pendiente";
 "Starting…" = "Iniciando…";
 "Stopping…" = "Deteniendo…";
+
+/* Process runner errors */
+"Command failed with exit code %lld" = "El comando falló con código de salida %lld";
+"The command timed out" = "El comando excedió el tiempo de espera";
+"The command was cancelled" = "El comando fue cancelado";
+
+/* Prune confirmations */
+"Remove 1 unused image?" = "¿Eliminar 1 imagen sin uso?";
+"Remove %lld unused images?" = "¿Eliminar %lld imágenes sin uso?";
+"Remove all unused volumes?" = "¿Eliminar todos los volúmenes sin uso?";
+"Every volume not referenced by a container will be deleted, including the data stored in it. This action cannot be undone." = "Se eliminarán todos los volúmenes que no use ningún contenedor, incluidos sus datos. Esta acción no se puede deshacer.";
+
+/* Binary location */
+"Not found" = "No encontrado";
+"Use default" = "Usar predeterminado";
+"Select the container executable" = "Seleccioná el ejecutable container";
+
+/* Action feedback */
+"Couldn't start %@" = "No se pudo iniciar %@";
+"Couldn't stop %@" = "No se pudo detener %@";
+"Couldn't restart %@" = "No se pudo reiniciar %@";
+"Couldn't remove %@" = "No se pudo eliminar %@";
+"Couldn't kill %@" = "No se pudo forzar la detención de %@";
+"Couldn't prune containers" = "No se pudieron limpiar los contenedores";
+"Couldn't delete %@" = "No se pudo eliminar %@";
+"Couldn't delete volume %@" = "No se pudo eliminar el volumen %@";
+"Couldn't prune volumes" = "No se pudieron limpiar los volúmenes";
+"Couldn't start the service" = "No se pudo iniciar el servicio";
+"Couldn't stop the service" = "No se pudo detener el servicio";
+"Could not start service: %@" = "No se pudo iniciar el servicio: %@";
+"Could not stop service: %@" = "No se pudo detener el servicio: %@";
+"Working…" = "Procesando…";
+"Dismiss" = "Descartar";
+
+/* Background jobs & Activity */
+"Build %@" = "Compilar %@";
+"Pull %@" = "Descargar %@";
+"Up %@" = "Levantar %@";
+"Down %@" = "Bajar %@";
+"Activity" = "Actividad";
+"Activity, %lld running" = "Actividad, %lld en curso";
+"Clear finished" = "Limpiar terminadas";
+"No builds, pulls or group runs yet." = "Todavía no hay compilaciones, descargas ni grupos en ejecución.";
+"Show log" = "Ver log";
+"Done" = "Listo";
+"Cancelled" = "Cancelado";
+"Failed" = "Falló";
+"Pulling…" = "Descargando…";
+"The pull continues in the background — follow it from Activity in the toolbar." = "La descarga sigue en segundo plano; seguila desde Actividad en la barra de herramientas.";
+"Build log — %@" = "Log de compilación — %@";
+"Last build — %@" = "Última compilación — %@";
+"Show %@ in Images" = "Ver %@ en Imágenes";
+
+/* Live logs */
+"All" = "Todas";
+"Lines to load" = "Líneas a cargar";
+"Filter…" = "Filtrar…";
+"Boot log" = "Log de arranque";
+"Show the VM boot log instead of the container's output" = "Mostrar el log de arranque de la VM en lugar de la salida del contenedor";
+"Follow" = "Seguir";
+"Stream new lines as they're written" = "Mostrar las líneas nuevas a medida que se escriben";
+"Waiting for output…" = "Esperando salida…";
+"5 min" = "5 min";
+"1 h" = "1 h";
+"1 day" = "1 día";
+"How far back to fetch" = "Cuánto tiempo hacia atrás cargar";
+
+/* DNS */
+"Create a local DNS domain so containers are reachable by name (e.g. web.%@). Uses .test by default — .local belongs to Bonjour and can break printer.local-style names on your network." = "Creá un dominio DNS local para acceder a los contenedores por nombre (p. ej. web.%@). Por defecto usa .test: .local pertenece a Bonjour y puede romper nombres como impresora.local en tu red.";
+"Configured:" = "Configurados:";
+"Use lowercase letters, digits and hyphens." = "Usá minúsculas, dígitos y guiones.";
+"Created .%@ domain" = "Dominio .%@ creado";
+"Removed .%@ domain" = "Dominio .%@ eliminado";
+"Couldn't create .%@ domain" = "No se pudo crear el dominio .%@";
+"Couldn't remove .%@ domain" = "No se pudo eliminar el dominio .%@";
+
+/* Volumes usage */
+"Max size" = "Tamaño máximo";
+"Disk image" = "Imagen de disco";
+"Not mounted by any container" = "Ningún contenedor lo monta";
+"Remove the containers that mount this volume before deleting it." = "Eliminá los contenedores que montan este volumen antes de borrarlo.";
+"Search volumes…" = "Buscar volúmenes…";
+"In use by a container" = "En uso por un contenedor";
+
+/* Compose */
+"Skipped: %@ failed to start" = "Omitido: %@ no pudo iniciarse";
+"Couldn't save: %@" = "No se pudo guardar: %@";
+"The document is empty." = "El documento está vacío.";
+"Expected a top-level \"services:\" key." = "Se esperaba una clave \"services:\" en el nivel superior.";
+"Line %lld: inconsistent indentation." = "Línea %lld: indentación inconsistente.";
+"Line %lld: expected a service name ending in \":\"." = "Línea %lld: se esperaba un nombre de servicio terminado en \":\".";
+"Line %lld: unknown key \"%@\" in service \"%@\". Allowed: image, ports, env, volumes, depends_on." = "Línea %lld: clave desconocida \"%@\" en el servicio \"%@\". Permitidas: image, ports, env, volumes, depends_on.";
+"Service \"%@\" is missing a required \"image\" key." = "Al servicio \"%@\" le falta la clave obligatoria \"image\".";
+"Line %lld: service \"%@\" is declared more than once." = "Línea %lld: el servicio \"%@\" está declarado más de una vez.";
+"Line %lld: malformed \"%@\" entry \"%@\" in service \"%@\"." = "Línea %lld: entrada \"%@\" mal formada (\"%@\") en el servicio \"%@\".";
+"Service \"%@\" depends on unknown service \"%@\"." = "El servicio \"%@\" depende del servicio desconocido \"%@\".";
+"Dependency cycle: %@." = "Ciclo de dependencias: %@.";
+
+/* Networks */
+"Networks" = "Redes";
+"Select a network" = "Seleccioná una red";
+"Search networks…" = "Buscar redes…";
+"No networks" = "No hay redes";
+"Create network" = "Crear red";
+"Refresh networks" = "Actualizar redes";
+"Remove networks with no containers attached" = "Eliminar las redes sin contenedores conectados";
+"Prune unused networks" = "Limpiar redes sin uso";
+"Remove unused networks?" = "¿Eliminar las redes sin uso?";
+"Networks with no containers attached will be deleted." = "Se eliminarán las redes que no tengan contenedores conectados.";
+"built-in" = "integrada";
+"Containers attached" = "Contenedores conectados";
+"IPv4 subnet" = "Subred IPv4";
+"Gateway" = "Puerta de enlace";
+"IPv6 subnet" = "Subred IPv6";
+"Plugin" = "Plugin";
+"Attached containers" = "Contenedores conectados";
+"No containers attached" = "No hay contenedores conectados";
+"Run a container with this network from the Run sheet's Network option; containers on the same network reach each other by name." = "Ejecutá un contenedor en esta red con la opción Red de la hoja Ejecutar; los contenedores de una misma red se alcanzan por nombre.";
+"Delete network" = "Eliminar red";
+"Built-in networks can't be deleted." = "Las redes integradas no se pueden eliminar.";
+"Remove the attached containers before deleting this network." = "Eliminá los contenedores conectados antes de borrar esta red.";
+"Delete network \"%@\"?" = "¿Eliminar la red \"%@\"?";
+"Subnet (optional)" = "Subred (opcional)";
+"Internal (host-only, no outbound access)" = "Interna (solo host, sin acceso a internet)";
+"Couldn't delete network %@" = "No se pudo eliminar la red %@";
+"Couldn't prune networks" = "No se pudieron limpiar las redes";
+
+/* Run sheet (full) */
+"Network" = "Red";
+"Load .env file…" = "Cargar archivo .env…";
+"Pass a KEY=value file with --env-file" = "Pasar un archivo KEY=valor con --env-file";
+"Remove env file" = "Quitar archivo env";
+"Advanced" = "Avanzado";
+"Command (overrides the image's CMD)" = "Comando (reemplaza el CMD de la imagen)";
+"e.g. npm run dev" = "p. ej. npm run dev";
+"Entrypoint" = "Entrypoint";
+"image default" = "predeterminado de la imagen";
+"Working directory" = "Directorio de trabajo";
+"User" = "Usuario";
+"uid[:gid] or name" = "uid[:gid] o nombre";
+"Platform" = "Plataforma";
+"Native (linux/arm64)" = "Nativa (linux/arm64)";
+"linux/amd64 (x86, via Rosetta)" = "linux/amd64 (x86, con Rosetta)";
+"Remove the container when it stops (--rm)" = "Eliminar el contenedor cuando se detenga (--rm)";
+"Read-only root filesystem" = "Sistema de archivos raíz de solo lectura";
+"Run an init process (reaps zombies, forwards signals)" = "Usar un proceso init (limpia zombis y reenvía señales)";
+"Forward the SSH agent" = "Reenviar el agente SSH";
+"Enable Rosetta" = "Activar Rosetta";
+"Labels" = "Etiquetas";
+"Add label" = "Agregar etiqueta";
+"Remove label" = "Quitar etiqueta";
+"key" = "clave";
+"Duplicate…" = "Duplicar…";
+"More actions" = "Más acciones";
+"Couldn't read the configuration of %@" = "No se pudo leer la configuración de %@";
+
+/* Builder */
+"Builder" = "Builder";
+"Not created" = "No creado";
+"%lld CPUs · %@" = "%lld CPUs · %@";
+"Created automatically by the first build." = "Se crea automáticamente con la primera compilación.";
+"Apply & restart" = "Aplicar y reiniciar";
+"Delete the builder container (its build cache goes with it)" = "Eliminar el contenedor del builder (y su caché de compilación)";
+"Couldn't start the builder" = "No se pudo iniciar el builder";
+"Couldn't stop the builder" = "No se pudo detener el builder";
+"Couldn't delete the builder" = "No se pudo eliminar el builder";
+
+/* Command palette */
+"Run %@" = "Ejecutar %@";
+"Go to %@" = "Ir a %@";
+"Section" = "Sección";
+"Run container…" = "Ejecutar contenedor…";
+"Pull image…" = "Descargar imagen…";
+"Build image…" = "Compilar imagen…";
+"Create volume…" = "Crear volumen…";
+"Create network…" = "Crear red…";
+"Stop the container service" = "Detener el servicio de contenedores";
+"Start the container service" = "Iniciar el servicio de contenedores";
+"Restart %@" = "Reiniciar %@";
+"Open shell in %@" = "Abrir shell en %@";
+"Search or type a command…" = "Buscá o escribí un comando…";
+"run" = "ejecutar";
+
+/* Resource dashboard */
+"CPU" = "CPU";
+"%lld host cores" = "%lld núcleos en el host";
+"of %@ allocated" = "de %@ asignados";
+"No containers running." = "No hay contenedores en ejecución.";
+"Measuring…" = "Midiendo…";
+
+/* Bulk actions */
+"%lld selected" = "%lld seleccionados";
+"Remove…" = "Eliminar…";
+"Clear selection (Esc)" = "Quitar selección (Esc)";
+"Clear selection" = "Quitar selección";
+"Remove %lld containers?" = "¿Eliminar %lld contenedores?";
+
+/* Previously untranslated */
+"Select a container" = "Seleccioná un contenedor";
+"Select an image" = "Seleccioná una imagen";
+"Select a registry entry" = "Seleccioná una entrada del registro";
+"Select a volume" = "Seleccioná un volumen";
+"Overview" = "Resumen";

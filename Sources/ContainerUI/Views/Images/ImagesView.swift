@@ -1,13 +1,11 @@
 import SwiftUI
 
 struct ImagesView: View {
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @Binding var selected: ImageInfo?
     @State private var searchText = ""
-    @State private var showPullSheet = false
-    @State private var pullRef = ""
-    @State private var isPulling = false
-    @State private var pullError: String?
+    @State private var showPruneAlert = false
 
     private var filtered: [ImageInfo] {
         guard !searchText.isEmpty else { return service.images }
@@ -17,17 +15,23 @@ struct ImagesView: View {
         }
     }
 
-    private var unusedCount: Int {
+    private var unusedImages: [ImageInfo] {
         service.images.filter { img in
-            !service.containers.contains { imageMatches(containerImage: $0.image, image: img) }
-        }.count
+            !img.isSystem && !service.containers.contains { imageMatches(containerImage: $0.image, image: img) }
+        }
     }
+
+    private var unusedCount: Int { unusedImages.count }
 
     /// Split into two fully-formed literals (rather than interpolating an
     /// English "s" suffix) so each pluralization gets its own, grammatically
     /// correct translation.
     private var pruneImagesLabel: LocalizedStringKey {
         unusedCount == 1 ? "Prune 1 unused image" : "Prune \(unusedCount) unused images"
+    }
+
+    private var removeImagesAlertTitle: LocalizedStringKey {
+        unusedCount == 1 ? "Remove 1 unused image?" : "Remove \(unusedCount) unused images?"
     }
 
     var body: some View {
@@ -57,9 +61,8 @@ struct ImagesView: View {
             if filtered.isEmpty {
                 if searchText.isEmpty {
                     EmptyStateView(icon: "photo.stack", title: "No images") {
-                        Button("Pull an image") { showPullSheet = true }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Theme.accent)
+                        Button("Pull an image") { app.showPullSheet = true }
+                            .buttonStyle(BrandButtonStyle(kind: .primary))
                     }
                 } else {
                     EmptyStateView(icon: "magnifyingglass", title: "No results for \"\(searchText)\"")
@@ -76,6 +79,7 @@ struct ImagesView: View {
                     .padding(12)
                 }
                 .background(Theme.bg)
+                .listKeyboardNavigation(items: filtered, selection: $selected)
             }
         }
         .navigationTitle("Images")
@@ -90,7 +94,7 @@ struct ImagesView: View {
                 .accessibilityLabel("Refresh images")
 
                 Button {
-                    Task { await service.pruneImages() }
+                    showPruneAlert = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "trash.slash")
@@ -102,12 +106,11 @@ struct ImagesView: View {
                 }
                 .help(pruneImagesLabel)
                 .foregroundStyle(unusedCount > 0 ? .orange : .secondary)
+                .disabled(unusedCount == 0)
                 .accessibilityLabel(pruneImagesLabel)
 
                 Button {
-                    pullRef = ""
-                    pullError = nil
-                    showPullSheet = true
+                    app.showPullSheet = true
                 } label: {
                     Image(systemName: "arrow.down.circle")
                 }
@@ -116,69 +119,24 @@ struct ImagesView: View {
             }
         }
         .task { await service.fetchImages() }
-        .sheet(isPresented: $showPullSheet) {
-            PullImageSheet(isPresented: $showPullSheet)
+        .alert(removeImagesAlertTitle, isPresented: $showPruneAlert) {
+            Button("Remove", role: .destructive) {
+                let refs = unusedImages.map(\.ref)
+                Task { await service.removeImages(refs) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(unusedImages.map(\.ref).joined(separator: "\n"))
         }
-    }
-}
-
-func imageIcon(for name: String) -> (symbol: String, color: Color) {
-    let base = name.split(separator: "/").last.map(String.init) ?? name
-    let lower = base.lowercased()
-    switch true {
-    case lower.contains("postgres") || lower.contains("pgvector"):
-        return ("cylinder.split.1x2.fill", .blue)
-    case lower.contains("mysql") || lower.contains("mariadb"):
-        return ("cylinder.split.1x2.fill", .orange)
-    case lower.contains("mongo"):
-        return ("cylinder.split.1x2.fill", .green)
-    case lower.contains("redis"):
-        return ("bolt.fill", .red)
-    case lower.contains("nginx") || lower.contains("caddy") || lower.contains("traefik") || lower.contains("haproxy"):
-        return ("network", .blue)
-    case lower.contains("node") || lower.contains("deno") || lower.contains("bun"):
-        return ("chevron.left.forwardslash.chevron.right", Color(red: 0.3, green: 0.7, blue: 0.3))
-    case lower.contains("python"):
-        return ("chevron.left.forwardslash.chevron.right", .yellow)
-    case lower.contains("ruby") || lower.contains("rails"):
-        return ("chevron.left.forwardslash.chevron.right", .red)
-    case lower.contains("golang") || lower.contains("/go"):
-        return ("chevron.left.forwardslash.chevron.right", .cyan)
-    case lower.contains("rust"):
-        return ("chevron.left.forwardslash.chevron.right", .orange)
-    case lower.contains("java") || lower.contains("gradle") || lower.contains("maven"):
-        return ("chevron.left.forwardslash.chevron.right", .red)
-    case lower.contains("ubuntu") || lower.contains("debian") || lower.contains("centos") || lower.contains("fedora"):
-        return ("terminal.fill", .purple)
-    case lower.contains("alpine"):
-        return ("mountain.2.fill", .gray)
-    case lower.contains("kafka") || lower.contains("rabbit") || lower.contains("nats"):
-        return ("arrow.left.arrow.right.circle.fill", .orange)
-    case lower.contains("elastic") || lower.contains("opensearch") || lower.contains("kibana"):
-        return ("magnifyingglass.circle.fill", Color(red: 1.0, green: 0.6, blue: 0.1))
-    case lower.contains("grafana") || lower.contains("prometheus"):
-        return ("chart.xyaxis.line", .orange)
-    case lower.contains("jenkins") || lower.contains("gitlab") || lower.contains("drone"):
-        return ("gearshape.2.fill", .indigo)
-    case lower.contains("wordpress") || lower.contains("ghost") || lower.contains("drupal"):
-        return ("globe", .blue)
-    case lower.contains("minio") || lower.contains("s3"):
-        return ("externaldrive.fill", .yellow)
-    case lower.contains("sonar"):
-        return ("doc.text.magnifyingglass", Color(red: 0.2, green: 0.55, blue: 0.85))
-    case lower.contains("scanner") || lower.contains("cli"):
-        return ("terminal.fill", .indigo)
-    default:
-        return ("shippingbox.fill", .secondary)
     }
 }
 
 struct ImageRowView: View {
     let image: ImageInfo
     var isSelected: Bool = false
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showDeleteAlert = false
-    @State private var showRunSheet = false
 
     private var iconInfo: (symbol: String, color: Color) {
         imageIcon(for: image.name)
@@ -257,7 +215,7 @@ struct ImageRowView: View {
             Spacer()
 
             Button {
-                showRunSheet = true
+                app.runContainer(RunSpec(image: image.ref))
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
@@ -275,7 +233,9 @@ struct ImageRowView: View {
                     .foregroundStyle(Theme.danger)
             }
             .buttonStyle(.plain)
-            .help("Delete image")
+            .disabled(usageState != .unused)
+            .opacity(usageState != .unused ? 0.35 : 1)
+            .help(usageState != .unused ? "In use by a container" : "Delete image")
             .accessibilityLabel("Delete \(image.shortName)")
         }
         .padding(.horizontal, 12)
@@ -296,22 +256,15 @@ struct ImageRowView: View {
         } message: {
             Text("This will remove the image from local storage.")
         }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(imageRef: image.ref,
-                              defaultPorts: [],
-                              defaultMemory: "512M",
-                              defaultEnv: [])
-                .environmentObject(service)
-        }
     }
 }
 
 struct PullImageSheet: View {
     @Binding var isPresented: Bool
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
     @State private var ref = ""
-    @State private var isPulling = false
-    @State private var error: String?
+
+    private var trimmed: String { ref.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -325,45 +278,30 @@ struct PullImageSheet: View {
                 TextField("e.g. nginx:latest, postgres:16", text: $ref)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13, design: .monospaced))
-                    .onSubmit { Task { await pull() } }
-            }
-
-            if let error {
-                ErrorBanner(message: error) { self.error = nil }
+                    .onSubmit(pull)
+                Text("The pull continues in the background — follow it from Activity in the toolbar.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.text3)
             }
 
             HStack {
                 Spacer()
                 Button("Cancel") { isPresented = false }
                     .keyboardShortcut(.escape)
-                Button("Pull") {
-                    Task { await pull() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .disabled(ref.trimmingCharacters(in: .whitespaces).isEmpty || isPulling)
-            }
-
-            if isPulling {
-                ProgressView("Pulling \(ref)…")
-                    .progressViewStyle(.linear)
+                    .buttonStyle(BrandButtonStyle(kind: .secondary))
+                Button("Pull", action: pull)
+                    .buttonStyle(BrandButtonStyle(kind: .primary))
+                    .disabled(trimmed.isEmpty)
             }
         }
         .padding(20)
         .frame(width: 400)
+        .background(Theme.bg)
     }
 
-    func pull() async {
-        let trimmed = ref.trimmingCharacters(in: .whitespaces)
+    private func pull() {
         guard !trimmed.isEmpty else { return }
-        isPulling = true
-        error = nil
-        do {
-            try await service.pullImage(trimmed)
-            isPresented = false
-        } catch {
-            self.error = error.localizedDescription
-        }
-        isPulling = false
+        service.startPull(trimmed)
+        isPresented = false
     }
 }

@@ -3,7 +3,7 @@ import Charts
 
 struct StatsTabView: View {
     let container: ContainerInfo
-    @EnvironmentObject var service: ContainerService
+    @Environment(ContainerService.self) private var service
 
     private var stats: ContainerStats? { service.latestStats[container.id] }
     private var history: [ContainerStatsSample] { service.statsHistory[container.id] ?? [] }
@@ -45,12 +45,12 @@ struct StatsTabView: View {
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(Color(hex: "#3B82F6").opacity(0.25))
+                                    .foregroundStyle(Theme.Hue.blue.opacity(0.25))
                                     LineMark(
                                         x: .value("Time", sample.timestamp),
                                         y: .value("Memory", sample.memoryUsageBytes)
                                     )
-                                    .foregroundStyle(Color(hex: "#3B82F6"))
+                                    .foregroundStyle(Theme.Hue.blue)
                                 }
                                 .frame(height: 90)
                             }
@@ -86,7 +86,9 @@ struct StatsTabView: View {
             }
             .padding(12)
         }
-        .task(id: container.id) {
+        // Keyed on the state too, so starting the container while this tab
+        // is open begins polling instead of spinning on "Loading stats…".
+        .task(id: "\(container.id)-\(container.state.rawValue)") {
             guard container.state.isRunning else { return }
             while !Task.isCancelled {
                 await service.pollStats(for: container.id)

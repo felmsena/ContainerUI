@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ImageDetailView: View {
     let image: ImageInfo
-    @EnvironmentObject var service: ContainerService
-    @State private var showRunSheet = false
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
     @State private var showDeleteAlert = false
 
     private var iconInfo: (symbol: String, color: Color) { imageIcon(for: image.name) }
@@ -60,7 +60,7 @@ struct ImageDetailView: View {
 
                 // Details
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Details")
+                    SectionHeader("Details")
 
                     infoRow(label: "Full name", value: image.name)
                     infoRow(label: "Tag",       value: image.tag)
@@ -75,7 +75,7 @@ struct ImageDetailView: View {
 
                 // Container usage
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Used by")
+                    SectionHeader("Used by")
 
                     if usingContainers.isEmpty {
                         HStack(spacing: 8) {
@@ -115,7 +115,7 @@ struct ImageDetailView: View {
 
                 // Pull command
                 VStack(alignment: .leading, spacing: 10) {
-                    sectionHeader("Pull command")
+                    SectionHeader("Pull command")
 
                     copyableCode("container image pull \(image.ref)")
                 }
@@ -127,7 +127,7 @@ struct ImageDetailView: View {
                 // Actions
                 HStack(spacing: 10) {
                     Button {
-                        showRunSheet = true
+                        app.runContainer(RunSpec(image: image.ref))
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.fill")
@@ -169,10 +169,6 @@ struct ImageDetailView: View {
         } message: {
             Text("This will remove the image from local storage.")
         }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(imageRef: image.ref, defaultPorts: [], defaultMemory: "512M", defaultEnv: [])
-                .environmentObject(service)
-        }
     }
 
     // MARK: – Helpers
@@ -213,14 +209,6 @@ struct ImageDetailView: View {
             .clipShape(Capsule())
     }
 
-    @ViewBuilder
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.text3)
-            .textCase(.uppercase)
-            .tracking(0.5)
-    }
 
     @ViewBuilder
     private func infoRow(label: LocalizedStringKey, value: String) -> some View {

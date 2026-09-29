@@ -2,12 +2,14 @@ import SwiftUI
 
 @main
 struct ContainerUIApp: App {
-    @StateObject private var service = ContainerService()
+    @State private var service = ContainerService()
+    @State private var app = AppState()
 
     var body: some Scene {
         WindowGroup(id: "main-window") {
             ContentView()
-                .environmentObject(service)
+                .environment(service)
+                .environment(app)
                 .background(WindowChrome().frame(width: 0, height: 0))
         }
         .windowStyle(.titleBar)
@@ -15,38 +17,37 @@ struct ContainerUIApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 Button("Refresh") {
-                    Task { await service.refreshCurrentSection() }
+                    Task { await service.refresh(app.sidebarItem) }
                 }
                 .keyboardShortcut("r", modifiers: .command)
 
                 Button("Search…") {
-                    service.showCommandPalette.toggle()
+                    app.showCommandPalette.toggle()
                 }
                 .keyboardShortcut("k", modifiers: .command)
             }
 
             CommandGroup(replacing: .newItem) {
                 Button("Run Container…") {
-                    service.showRunSheet = true
+                    app.runContainer()
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
 
             CommandGroup(after: .toolbar) {
-                ForEach(Array(SidebarItem.allCases.enumerated()), id: \.element) { index, item in
-                    if item != .settings {
-                        Button(LocalizedStringKey(item.rawValue)) {
-                            service.sidebarItem = item
-                        }
-                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                ForEach(Array(SidebarItem.allCases.filter { $0 != .settings }.enumerated()), id: \.element) { index, item in
+                    Button(LocalizedStringKey(item.rawValue)) {
+                        app.sidebarItem = item
                     }
+                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
                 }
             }
         }
 
         MenuBarExtra {
             MenuBarView()
-                .environmentObject(service)
+                .environment(service)
+                .environment(app)
         } label: {
             MenuBarLabel(runningCount: service.containers.filter { $0.state.isRunning }.count,
                          hasError: service.serviceError != nil)

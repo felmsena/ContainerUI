@@ -2,14 +2,19 @@ import SwiftUI
 
 struct RegistryDetailView: View {
     let entry: RegistryEntry
-    @EnvironmentObject var service: ContainerService
-    @State private var showRunSheet = false
-    @State private var isPulling = false
-    @State private var pullError: String?
-    @State private var pullTask: Task<Void, Never>?
+    @Environment(ContainerService.self) private var service
+    @Environment(AppState.self) private var app
+    private var pullJob: BackgroundJob? { service.latestJob(.pull, subject: entry.fullRef) }
+    private var isPulling: Bool { pullJob?.isRunning == true }
+    private var pullError: String? {
+        if case .failed(let message) = pullJob?.status { return message }
+        return nil
+    }
 
+    /// Name *and* tag must match — a local `postgres:15` doesn't mean the
+    /// catalog's `postgres:16` is already pulled.
     private var isAlreadyPulled: Bool {
-        service.images.contains { $0.name == entry.image }
+        service.images.contains { imageMatches(containerImage: entry.fullRef, image: $0) }
     }
 
     var body: some View {
@@ -70,7 +75,7 @@ struct RegistryDetailView: View {
                 // Description
                 if !entry.description.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        sectionHeader("About")
+                        SectionHeader("About")
                         Text(entry.description)
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.text)
@@ -84,7 +89,7 @@ struct RegistryDetailView: View {
 
                 // Default configuration
                 VStack(alignment: .leading, spacing: 12) {
-                    sectionHeader("Default Configuration")
+                    SectionHeader("Default Configuration")
 
                     configRow(label: "Image", value: entry.fullRef, monospaced: true)
                     configRow(label: "Memory", value: entry.defaultMemory, monospaced: true)
@@ -146,7 +151,7 @@ struct RegistryDetailView: View {
 
                 // Error
                 if let err = pullError {
-                    ErrorBanner(message: err) { pullError = nil }
+                    ErrorBanner(message: err) { service.clearFinishedJobs() }
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
                 }
@@ -155,10 +160,9 @@ struct RegistryDetailView: View {
                 HStack(spacing: 10) {
                     Button {
                         if isPulling {
-                            pullTask?.cancel()
-                            isPulling = false
+                            pullJob?.cancel()
                         } else {
-                            pullTask = Task { await pull() }
+                            service.startPull(entry.fullRef)
                         }
                     } label: {
                         HStack(spacing: 6) {
@@ -177,7 +181,7 @@ struct RegistryDetailView: View {
                     .disabled(isAlreadyPulled && !isPulling)
 
                     Button {
-                        showRunSheet = true
+                        app.runContainer(entry.runSpec)
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.fill")
@@ -188,32 +192,21 @@ struct RegistryDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
+
+                if let pullJob, pullJob.isRunning {
+                    JobProgressView(job: pullJob)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(entry.name)
         .task { await service.fetchImages() }
-        .sheet(isPresented: $showRunSheet) {
-            RunContainerSheet(
-                imageRef: entry.fullRef,
-                defaultPorts: entry.defaultPorts,
-                defaultMemory: entry.defaultMemory,
-                defaultEnv: entry.defaultEnv
-            )
-            .environmentObject(service)
-        }
     }
 
     // MARK: – Helpers
 
-    @ViewBuilder
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.text3)
-            .textCase(.uppercase)
-            .tracking(0.5)
-    }
 
     @ViewBuilder
     private func configRow(label: LocalizedStringKey, value: String, monospaced: Bool = false) -> some View {
@@ -246,15 +239,5 @@ struct RegistryDetailView: View {
         }
     }
 
-    private func pull() async {
-        isPulling = true
-        pullError = nil
-        do {
-            try await service.pullImage(entry.fullRef)
-        } catch {
-            pullError = error.localizedDescription
-        }
-        isPulling = false
-    }
 
 }
