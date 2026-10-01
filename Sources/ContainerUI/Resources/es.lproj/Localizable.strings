@@ -561,3 +561,8 @@
 "Select a registry entry" = "Seleccioná una entrada del registro";
 "Select a volume" = "Seleccioná un volumen";
 "Overview" = "Resumen";
+"Interactive" = "Interactivo";
+"Command" = "Comando";
+"Session ended" = "Sesión finalizada";
+"Exit code %lld" = "Código de salida %lld";
+"Reconnect" = "Reconectar";

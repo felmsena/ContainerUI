@@ -10,6 +10,13 @@ struct ExecTabView: View {
     @State private var historyCursor = 0
     @State private var isRunning = false
 
+    private enum Mode: Hashable { case interactive, command }
+    @State private var mode: Mode = .interactive
+
+    private let modes: [(value: Mode, label: LocalizedStringKey, enabled: Bool)] = [
+        (.interactive, "Interactive", true), (.command, "Command", true),
+    ]
+
     private struct ExecEntry: Identifiable {
         let id = UUID()
         let command: String
@@ -20,6 +27,37 @@ struct ExecTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             if container.state.isRunning {
+                HStack(spacing: 8) {
+                    BrandTabs(items: modes, selection: $mode)
+                    Spacer(minLength: 0)
+                    Button {
+                        service.openShell(for: container.id)
+                    } label: {
+                        Label("Open in Terminal", systemImage: "terminal")
+                    }
+                    .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Divider()
+
+                switch mode {
+                case .interactive:
+                    InteractiveTerminalView(containerID: container.id)
+                        .id(container.id)
+                case .command:
+                    commandRunner
+                }
+            } else {
+                notRunning
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var commandRunner: some View {
+        VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     Text("$")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -39,13 +77,6 @@ struct ExecTabView: View {
                     Button("Run", action: runCommand)
                         .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                         .disabled(isRunning || commandText.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    Button {
-                        service.openShell(for: container.id)
-                    } label: {
-                        Label("Open in Terminal", systemImage: "terminal")
-                    }
-                    .buttonStyle(BrandButtonStyle(kind: .secondary, compact: true))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -94,17 +125,18 @@ struct ExecTabView: View {
                         }
                     }
                 }
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "terminal")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.quaternary)
-                    Text("Container is not running")
-                        .foregroundStyle(Theme.text2)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
         }
+    }
+
+    private var notRunning: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "terminal")
+                .font(.system(size: 36))
+                .foregroundStyle(.quaternary)
+            Text("Container is not running")
+                .foregroundStyle(Theme.text2)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func runCommand() {

@@ -19,7 +19,7 @@ Apple Container is a command-line tool that lets you run lightweight Linux conta
 - **Containers** — run, start, stop, restart, kill, remove and duplicate containers; ⌘-click for bulk actions, ↑/↓ to navigate
 - **Run sheet** — ports, env vars and `.env` files, volumes, network, command/entrypoint, workdir, user, x86 images via Rosetta, `--rm`, read-only, init, SSH agent forwarding — with a copyable command preview
 - **Logs** — follow container output live, VM boot logs, filter, and system logs by time range
-- **Shell & files** — run commands inside a container, open a Terminal shell, copy files in/out, export the filesystem
+- **Shell & files** — a real interactive terminal inside the container (bash/sh, colors, full-screen apps), a one-shot command runner, open in Terminal, copy files in/out, export the filesystem
 - **Images** — browse with contextual icons, pull with live progress, delete, prune unused (never Apple's system images)
 - **Volumes** — create, inspect and delete, with the containers that mount each one
 - **Networks** — create (custom subnet or host-only), inspect, delete and prune networks

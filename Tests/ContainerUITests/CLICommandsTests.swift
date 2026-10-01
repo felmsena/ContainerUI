@@ -16,6 +16,18 @@ final class CLICommandsTests: XCTestCase {
         XCTAssertEqual(CLI.imagePull("nginx:alpine"), ["image", "pull", "--progress", "plain", "nginx:alpine"])
     }
 
+    func testExecInteractive_defaultShellPrefersBash() {
+        let args = CLI.execInteractive(id: "web")
+        XCTAssertEqual(Array(args.prefix(5)), ["exec", "--tty", "--interactive", "web", "/bin/sh"])
+        XCTAssertEqual(args[5], "-c")
+        XCTAssertTrue(args[6].contains("exec bash"))
+        XCTAssertTrue(args[6].contains("exec sh"))
+    }
+
+    func testExecInteractive_customShell() {
+        XCTAssertEqual(CLI.execInteractive(id: "web", shell: ["zsh"]), ["exec", "--tty", "--interactive", "web", "zsh"])
+    }
+
     func testBuild() {
         XCTAssertEqual(CLI.build(tag: "app:1", contextDir: "/src", buildArgs: ["A=1"]),
                        ["build", "--tag", "app:1", "--progress", "plain", "--build-arg", "A=1", "/src"])

@@ -21,6 +21,7 @@ final class CLIContractTests: XCTestCase {
             (["logs"], CLI.logs("x", lines: 5, follow: true, boot: true)),
             (["stats"], CLI.stats(["x"])),
             (["exec"], CLI.interactiveShell("x")),
+            (["exec"], CLI.execInteractive(id: "x")),
             (["export"], CLI.export("x", to: "/tmp/x.tar")),
             (["build"], CLI.build(tag: "t", contextDir: ".", buildArgs: ["A=1"])),
             (["image", "pull"], CLI.imagePull("x")),
@@ -54,6 +55,8 @@ final class CLIContractTests: XCTestCase {
             for flag in args where flag.hasPrefix("-") && !path.contains(flag) {
                 // Command arguments after the image (e.g. "-c") aren't CLI flags.
                 if path == ["run"], let imageIndex = args.firstIndex(of: "img"), args.firstIndex(of: flag)! > imageIndex { continue }
+                // Likewise for the command run inside the container (after its id "x").
+                if path == ["exec"], let idIndex = args.firstIndex(of: "x"), args.firstIndex(of: flag)! > idIndex { continue }
                 let pattern = "(^|[\\s,])\(NSRegularExpression.escapedPattern(for: flag))([\\s,=<]|$)"
                 XCTAssertNotNil(help.range(of: pattern, options: .regularExpression),
                                 "`container \(path.joined(separator: " "))` no longer accepts \(flag)")
