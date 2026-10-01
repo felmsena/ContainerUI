@@ -16,6 +16,12 @@ enum CLI {
     static func inspect(_ id: String) -> [String] { ["inspect", id] }
     static func exec(_ id: String, _ args: [String]) -> [String] { ["exec", id] + args }
     static func interactiveShell(_ id: String) -> [String] { ["exec", "--tty", "--interactive", id, "sh"] }
+    /// Shell started by the in-app terminal: bash when the image has it, else sh.
+    static let preferredShell = ["/bin/sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi"]
+    /// `exec` with a TTY and open stdin, for the embedded interactive terminal.
+    static func execInteractive(id: String, shell: [String] = preferredShell) -> [String] {
+        ["exec", "--tty", "--interactive", id] + shell
+    }
     static func copy(from source: String, to destination: String) -> [String] { ["copy", source, destination] }
     static func export(_ id: String, to path: String) -> [String] { ["export", "--output", path, id] }
 
